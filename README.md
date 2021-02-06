@@ -1,8 +1,12 @@
 # json_fetcher
 
-Tools to easily work with JSON services/data over HTTP.
+Tools to easily work with JSON services/data over HTTP + cache.
+This method of caching JSON data results in a smoother UI.
 
-Caching is included out of the box (files are managed by [flutter_cache_manager](https://github.com/Baseflow/flutter_cache_manager)).
+## Cache
+
+At low level a cached data are managed by [flutter_cache_manager](https://github.com/Baseflow/flutter_cache_manager).
+But, a data will be always updated at second step. Thats why the ```Stream<T>``` is used instead of ```Future<T>```.
 
 ## Getting Started
 
