@@ -1,6 +1,8 @@
 # json_fetcher
 
-Tools to easily work with JSON services / data over HTTP.
+Tools to easily work with JSON services/data over HTTP.
+
+Caching is included out of the box (files are managed by [flutter_cache_manager](https://github.com/Baseflow/flutter_cache_manager)).
 
 ## Getting Started
 
