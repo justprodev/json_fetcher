@@ -94,14 +94,18 @@ class HttpClient {
     return controller.stream;
   }
 
-  static Future<http.Response> post(String url, String json, {Map<String,String> headers}) async {
+  /// [throwError] if true then http error will be thrown as [HttpClientException]
+  static Future<http.Response> post(String url, String json, {Map<String,String> headers, throwError: false}) async {
     Map<String, String> h = {"Content-Type": "application/json"};
     h.addAll(_headers);
     if(headers!=null) h.addAll(headers);
     var response = await _client.post(url, body: json, headers: h);
     final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
     if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
-    if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire(); throw "$url: Пользователь не авторизован"; }
+    if (response.statusCode < 200 || response.statusCode >= 400) {
+      if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire(); throw "$url: Пользователь не авторизован"; }
+      if(throwError) throw HttpClientException("", response);
+    }
     return response;
   }
 
