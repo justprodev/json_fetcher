@@ -39,3 +39,9 @@ Stream<List<Typical>> fetchTypicals() => _TypicalFetcher().fetch("https://host/a
 ```
 
 Also, see [test/json_fetcher_test.dart](test/json_fetcher_test.dart)
+
+## TODO
+
+Refactor from "one instance using" (i.e. static accessing, etc) 
+to many instances with injecting parts in the constructors. 
+To possibly testing without MockWebServer and for using with DI.
