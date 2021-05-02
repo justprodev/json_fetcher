@@ -10,7 +10,6 @@
 import 'package:meta/meta.dart';
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -35,7 +34,7 @@ abstract class HttpJsonFetcher<T> {
       if(_step>0 && HttpClient._fetchHandler!=null) HttpClient._fetchHandler(url, o);
       _step++;
       return o;
-    } catch(e, trace) {
+    } catch(e) {
       if(_step == 0) return null; // from cache
 
       throw e;
@@ -233,21 +232,4 @@ class JsonCacheManager {
 
   Future<void> removeFile(key) => _cache.removeFile(key);
   Future<void> emptyCache() => _cache.emptyCache();
-}
-
-extension Decoder on http.Response {
-  /// decode body to Map && check any possibly error returned by backend
-  Future<Map<String, dynamic>> decode({errorPrefix = "Ошибка сервера"}) async {
-    final response = this;
-    final json = await compute(_decode, body);
-    if (response.statusCode < 200 || response.statusCode >= 400
-        || json["status"] == 400 || json["errorMessage"] != null) {
-      throw HttpClientException(errorPrefix, response);
-    }
-    return json;
-  }
-
-  static Map<String, dynamic> _decode(String jsonData) {
-    return json.decode(jsonData);
-  }
 }
