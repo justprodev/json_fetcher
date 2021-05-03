@@ -1,27 +1,27 @@
 name: json_fetcher
 description: Tools to easily work with JSON services / data over HTTP.
-version: 0.0.2
+version: 0.0.3
 author:
-homepage:
+homepage: https://github.com/justprodev/json_fetcher
 
 environment:
-  sdk: ">=2.7.0 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  http: ^0.12.0+2
-  flutter_cache_manager: ^2.1.1
-  path_provider: ^1.6.18
-  logging: ^0.11.4
+  http: ^0.13.2
+  flutter_cache_manager: ^3.0.1
+  path_provider: ^2.0.1
+  logging: ^1.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  mock_web_server: ^4.1.1
+  mock_web_server: ^5.0.0-nullsafety.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

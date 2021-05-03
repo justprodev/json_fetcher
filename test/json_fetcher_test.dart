@@ -13,11 +13,9 @@ const TYPICAL_DATA1 = "data1";
 const TYPICAL_DATA2 = "data2";
 
 class Typical {
-  String data;
+  String? data;
 
   static Typical fromMap(Map<String, dynamic> map) {
-    if (map == null) return null;
-
     Typical typical = Typical();
     typical.data = map['data'];
     return typical;
@@ -64,7 +62,7 @@ void main() {
     // 1 cached + 1 cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
 
-    List<Typical> generate(List<String> data) => List<Typical>()..addAll(data.map((e) => Typical()..data = e));
+    List<Typical> generate(List<String> data) => <Typical>[]..addAll(data.map((e) => Typical()..data = e));
 
     var s = fetchTypicals(prefix).listen((event) {
       expect(event, equals(generate([TYPICAL_DATA1])));
