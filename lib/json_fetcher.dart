@@ -56,6 +56,12 @@ abstract class HttpJsonFetcher<T> {
     return controller.stream;
   }
 
+  /// just get without caching
+  Future<T> get(String url, {Map<String,String>? headers}) async {
+    final String jsonString = (await _client.get(url, headers: headers, throwError: true)).body;
+    return await _parse(url, jsonString);
+  }
+
   Future<T> _parse(String url, String source) async {
     final o = await parse(source);
     if(_step>0) _client._fetchHandler?.call(url, o);
@@ -63,6 +69,8 @@ abstract class HttpJsonFetcher<T> {
     return o;
   }
 }
+
+enum _HTTP_ACTION { get, post, put, delete }
 
 /// Client especially for fetching json from host(s)
 /// It controls authentication via [setAuth] and used by [HttpJsonFetcher] to parse/cache json's
@@ -75,19 +83,27 @@ class JsonHttpClient {
   static final _log = Logger((JsonHttpClient).toString());
   /// permanent headers across client
   Map<String,String> _headers = Map();
-  Function()? _onBearerExpire;
+  Future<void> Function(bool isRepeat)? _onExpire;
   Function(String url, dynamic document)? _fetchHandler;
 
   JsonHttpClient(this._client);
 
-  /// Let's set the [bearer] that was obtained anywhere
-  /// "Authorization: Bearer [bearer]" will be added permanently to headers
-  /// [onBearerExpire] will be called for 401 error (bearer will be removed from the header immediately)
-  void setAuth(String bearer, Function onBearerExpire) {
-    _headers["Authorization"] = "Bearer " + bearer;
-    _onBearerExpire = () {
-      _headers.remove("Authorization");
-      onBearerExpire();
+  /// Sets the auth headers like "Authorization: Bearer $token" or anythings else
+  /// These headers will be include in every call
+  ///
+  /// [onExpire] will be called for 401 error ([authHeaders] will be removed from the header immediately),
+  /// `isRepeat`==true means that handler was called  at second, because a new auth data is wrong (refreshToken can't succeeded or etc),
+  ///  and We probably should redirect to login page
+  ///
+  void setAuth(Map<String, String> authHeaders, Future<void> Function(bool isRepeat) onExpire) {
+    _headers.addAll(authHeaders);
+    _onExpire = (bool _isRepeat) async {
+      authHeaders.keys.forEach((header)=>_headers.remove(header));
+      try {
+        await onExpire(_isRepeat);
+      } catch(e) {
+        _log.severe("Error while do onExpire($_isRepeat)", e);
+      }
     };
   }
 
@@ -98,73 +114,95 @@ class JsonHttpClient {
     _fetchHandler = handler;
   }
 
+  /// [throwError] if true then http error will be thrown as [HttpClientException]
+  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.post, url, json, headers: headers, throwError: throwError);
+  }
+
+  Future<http.Response> put(String url, String json, {Map<String,String>? headers, throwError: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.put, url, json, headers: headers, throwError: throwError);
+  }
+
+  Future<http.Response> get(String url, {Map<String,String>? headers, throwError: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.get, url, null, headers: headers, throwError: throwError);
+  }
+
+  Future<http.Response> delete(String url, {Map<String,String>? headers, throwError: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, throwError: throwError);
+  }
+
+  void logout() => _onExpire?.call(true);
+
+  JsonCacheManager get cache => _cache;
+
+  // private:
   Stream<String> _fetch(String url, {allowErrorWhenCacheExists = false, nocache = false}) {
     var controller = StreamController<String>();
     bool hasData = false;
-    _cache.readAsString(url, headers: _headers, nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
+    late Function(bool allowCloseStream) action;
+    bool isOnExpireCalled = false;
+
+    action = (allowCloseStream) => _cache.readAsString(url, headers: _headers, nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
         onError: (e) {
-          /// for 401 error we silently invoke onExpire handler
-          if (e is HttpException && e.message.contains('401') &&
-              _onBearerExpire != null) _onBearerExpire?.call();
+          /// for 401 error we invoke onExpire handler
+          if (e is HttpException && e.message.contains('401') && _onExpire != null) {
+            if(!isOnExpireCalled) {
+              allowCloseStream = false;   // block closing stream
+
+              _onExpire?.call(false).then((_) {
+                action(true);
+              }); // refresh auth data and resubmit latest call
+
+              isOnExpireCalled = true;
+            } else {
+              _onExpire?.call(true);                 // just inform because is second attempt
+              allowCloseStream = true;               // allow closing anyway
+            }
+          }
           if(allowErrorWhenCacheExists || !hasData) controller.addError(e);
           _log.severe("Error while fetching $url", e);
-        }, onDone: () => controller.close());
+        }, onDone: () { if(allowCloseStream) controller.close(); });
+
+    action(true);
 
     return controller.stream;
   }
 
-  /// [throwError] if true then http error will be thrown as [HttpClientException]
-  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: false}) async {
-    Map<String, String> h = {"Content-Type": "application/json"};
-    h.addAll(_headers);
-    if(headers!=null) h.addAll(headers);
-    var response = await _client.post(Uri.parse(url), body: json, headers: h);
-    final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
-    if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
-    if (response.statusCode < 200 || response.statusCode >= 400) {
-      if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire?.call(); throw "$url: Пользователь не авторизован"; }
-      if(throwError) throw HttpClientException("", response);
+  Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: false}) async {
+    late Future<http.Response> Function(bool isOnExpireCalled) action;
+
+    Future<http.Response> makeRequest() {
+      final Map<String, String> h = {"Content-Type": "application/json"};
+      h.addAll(_headers);
+      if(headers!=null) h.addAll(headers);
+
+      switch(actionType) {
+        case _HTTP_ACTION.get: return _client.get(Uri.parse(url), headers: h);
+        case _HTTP_ACTION.post: return _client.post(Uri.parse(url), body: json, headers: h);
+        case _HTTP_ACTION.put: return _client.put(Uri.parse(url), body: json, headers: h);
+        case _HTTP_ACTION.delete: return _client.delete(Uri.parse(url), body: json, headers: h);
+      }
     }
-    return response;
+
+    action = (isOnExpireCalled) async {
+      var response = await makeRequest();
+      final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
+      if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
+      if (response.statusCode < 200 || response.statusCode >= 400) {
+        /// for 401 error we silently invoke onExpire handler
+        if (response.statusCode==401 && _onExpire != null) {
+          await _onExpire?.call(isOnExpireCalled);         // refresh auth data
+          if(!isOnExpireCalled) {
+            return await action(true);                     // resubmit latest call & return here because error handled inside action (thrown, etc)
+          }
+        }
+        if(throwError) throw HttpClientException(response.reasonPhrase ?? "", response);
+      }
+      return response;
+    };
+
+    return await action(false);
   }
-
-  Future<http.Response> put(String url, String json, {Map<String,String>? headers}) async {
-    Map<String, String> h = {"Content-Type": "application/json"};
-    h.addAll(_headers);
-    if(headers!=null) h.addAll(headers);
-    var response = await _client.put(Uri.parse(url), body: json, headers: h);
-    final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
-    if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
-    if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire?.call(); throw "$url: Пользователь не авторизован"; }
-    return response;
-  }
-
-  /// get request without caching (unlike [_fetch])
-  Future<http.Response> get(String url) async {
-    Map<String, String> h = {"Content-Type": "application/json"};
-    h.addAll(_headers);
-    var response = await _client.get(Uri.parse(url), headers: h);
-    final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
-    if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
-    if (response.statusCode < 200 || response.statusCode >= 400) {
-      if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire?.call(); throw "$url: Пользователь не авторизован"; }
-      throw HttpClientException("", response);
-    }
-    return response;
-  }
-
-  Future<http.Response> delete(String url) async {
-    var response = await _client.delete(Uri.parse(url), headers: _headers);
-    if (response.statusCode < 200 || response.statusCode >= 400) {
-      if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire?.call(); throw "$url: Пользователь не авторизован"; }
-      throw HttpClientException("", response);
-    }
-    return response;
-  }
-
-  void logout() => _onBearerExpire?.call();
-
-  JsonCacheManager get cache => _cache;
 }
 
 class HttpClientException implements HttpException {
@@ -226,7 +264,7 @@ class JsonCacheManager {
         //print("download $url start");
         var webFile = await _cache.downloadFile(url, authHeaders: headers, force: true);
         //print("download $url stop");
-        if (webFile != null && !controller.isClosed) {
+        if (!controller.isClosed) {
           final String onlineString = await webFile.file.readAsString();
           if(onlineString != cachedString) // skip if a data the same
             controller.add(onlineString);
