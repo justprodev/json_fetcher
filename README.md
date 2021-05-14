@@ -35,6 +35,9 @@ class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
 }
 
 Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix) => _TypicalFetcher(client).fetch(prefix+GET_TYPICALS_METHOD);
+
+
+
 ```
 
 Also, see [test/json_fetcher_test.dart](test/json_fetcher_test.dart)

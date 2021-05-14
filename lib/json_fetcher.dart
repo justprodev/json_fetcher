@@ -2,16 +2,9 @@
 // All rights reserved. Use of this source code is governed by a
 // MIT License that can be found in the LICENSE file.
 
-/// Tools to easily work with JSON services / data over HTTP.
-/// 1. http client wrapper [JsonHttpClient]
-/// 2. json fetcher [HttpJsonFetcher]
-/// 3. cache [JsonCacheManager]
-
-import 'package:meta/meta.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
@@ -65,7 +58,7 @@ abstract class HttpJsonFetcher<T> {
 
   Future<T> _parse(String url, String source) async {
     final o = await parse(source);
-    if(_step>0) JsonHttpClient._fetchHandler?.call(url, o);
+    if(_step>0) _client._fetchHandler?.call(url, o);
     _step++;
     return o;
   }
@@ -80,9 +73,9 @@ class JsonHttpClient {
 
   static final _log = Logger((JsonHttpClient).toString());
   /// permanent headers across client
-  static Map<String,String> _headers = Map();
-  static Function()? _onBearerExpire;
-  static Function(String url, dynamic document)? _fetchHandler;
+  Map<String,String> _headers = Map();
+  Function()? _onBearerExpire;
+  Function(String url, dynamic document)? _fetchHandler;
 
   JsonHttpClient(this._client);
 
