@@ -6,7 +6,7 @@ This method of caching JSON data results in a smoother UI.
 ## Cache
 
 At low level a cached data are managed by [flutter_cache_manager](https://github.com/Baseflow/flutter_cache_manager).
-But, a data will be always updated at second step. Thats why the ```Stream<T>``` is used instead of ```Future<T>```.
+But, a data will be always updated at the second step. Thats why we use ```Stream<T>``` instead of ```Future<T>```.
 
 ## Getting Started
 
