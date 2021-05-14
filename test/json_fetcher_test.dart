@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:mock_web_server/mock_web_server.dart';
 
@@ -35,6 +36,8 @@ class Typical {
 }
 
 class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
+  _TypicalFetcher(JsonHttpClient client) : super(client);
+
   /// compute json parsing in separated thread
   @override
   Future<List<Typical>> parse(String source) => compute(_parseTypicals, source);
@@ -45,10 +48,11 @@ class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
   }
 }
 
-Stream<List<Typical>> fetchTypicals(String prefix) => _TypicalFetcher().fetch(prefix+GET_TYPICALS_METHOD);
+Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix) => _TypicalFetcher(client).fetch(prefix+GET_TYPICALS_METHOD);
 
 void main() {
   test('integration test of the cache (client + parser + cache)',() async {
+    JsonHttpClient client = JsonHttpClient(Client());
     MockWebServer server = new MockWebServer(port: 8082);
     await server.start();
 
@@ -64,13 +68,13 @@ void main() {
 
     List<Typical> generate(List<String> data) => <Typical>[]..addAll(data.map((e) => Typical()..data = e));
 
-    var s = fetchTypicals(prefix).listen((event) {
+    var s = fetchTypicals(client, prefix).listen((event) {
       expect(event, equals(generate([TYPICAL_DATA1])));
     });
     await s.asFuture();s.cancel();
 
     var count = 1;
-    s = fetchTypicals(prefix).listen((event) {
+    s = fetchTypicals(client, prefix).listen((event) {
       if(count == 1) expect(event, equals(generate([TYPICAL_DATA1])));  // 1 cached
       else if(count == 2) expect(
           event, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));    // 1 cached + 1 not cached
@@ -79,7 +83,7 @@ void main() {
     await s.asFuture();s.cancel();
 
     count = 0;
-    s = fetchTypicals(prefix).listen((event) {
+    s = fetchTypicals(client, prefix).listen((event) {
       expect(event, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));    // 1 cached + 1 cached
       count++;
     });

@@ -3,7 +3,7 @@
 // MIT License that can be found in the LICENSE file.
 
 /// Tools to easily work with JSON services / data over HTTP.
-/// 1. http client wrapper [HttpClient]
+/// 1. http client wrapper [JsonHttpClient]
 /// 2. json fetcher [HttpJsonFetcher]
 /// 3. cache [JsonCacheManager]
 
@@ -20,17 +20,22 @@ import 'package:logging/logging.dart';
 /// Universal fetcher for JSON by HTTP
 ///
 abstract class HttpJsonFetcher<T> {
+  final JsonHttpClient _client;
   int _step = 0;
+
+  HttpJsonFetcher(this._client);
+
   /// implement me: returns object parsed from json
   Future<T> parse(String source);
 
   /// set [allowErrorWhenCacheExists] to true if you want to see network errors always
   /// by default, if cached version is available then errors will not be pushed to stream
+  /// [nocache] skip cached version
   Stream<T> fetch(String url, {allowErrorWhenCacheExists: false, nocache: false}) {
     StreamController<T> controller = StreamController();
 
     controller.onListen = () {
-      StreamSubscription<String> subscription = HttpClient._fetch(url, allowErrorWhenCacheExists: allowErrorWhenCacheExists, nocache: nocache).listen(null,
+      StreamSubscription<String> subscription = _client._fetch(url, allowErrorWhenCacheExists: allowErrorWhenCacheExists, nocache: nocache).listen(null,
           onError: controller.addError, // Avoid Zone error replacement.
           onDone: controller.close);
       FutureOr<Null> add(T value) {
@@ -60,34 +65,31 @@ abstract class HttpJsonFetcher<T> {
 
   Future<T> _parse(String url, String source) async {
     final o = await parse(source);
-    if(_step>0) HttpClient._fetchHandler?.call(url, o);
+    if(_step>0) JsonHttpClient._fetchHandler?.call(url, o);
     _step++;
     return o;
   }
 }
 
-///
-/// Universal fetcher for JSON by HTTP (no cache)
-///
-abstract class HttpJsonGetter<T> {
-  /// implement me: returns object parsed from json
-  Future<T> parse(String source);
+/// Client especially for fetching json from host(s)
+/// It controls authentication via [setAuth] and used by [HttpJsonFetcher] to parse/cache json's
+class JsonHttpClient {
+  final http.Client _client;
+  /// cache manager used by [HttpJsonFetcher]
+  late JsonCacheManager _cache = JsonCacheManager(_client);
 
-  Future<T> get(String url) => HttpClient.get(url).then((s)=>parse(s.body));
-}
-
-class HttpClient {
-  static http.Client _client = http.Client();
-  static final _log = Logger((HttpClient).toString());
+  static final _log = Logger((JsonHttpClient).toString());
   /// permanent headers across client
   static Map<String,String> _headers = Map();
   static Function()? _onBearerExpire;
   static Function(String url, dynamic document)? _fetchHandler;
 
+  JsonHttpClient(this._client);
+
   /// Let's set the [bearer] that was obtained anywhere
   /// "Authorization: Bearer [bearer]" will be added permanently to headers
   /// [onBearerExpire] will be called for 401 error (bearer will be removed from the header immediately)
-  static void setAuth(String bearer, Function onBearerExpire) {
+  void setAuth(String bearer, Function onBearerExpire) {
     _headers["Authorization"] = "Bearer " + bearer;
     _onBearerExpire = () {
       _headers.remove("Authorization");
@@ -98,14 +100,14 @@ class HttpClient {
   /// [handler] will be called when [HttpJsonFetcher] completes parsing an document
   /// which was fetched from [url] from network (not from cache!)
   /// Please be sure, that handler works fast as possible (do heavy operations async)
-  static void setFetchHandler(Function(String url, dynamic document) handler) {
+  void setFetchHandler(Function(String url, dynamic document) handler) {
     _fetchHandler = handler;
   }
 
-  static Stream<String> _fetch(String url, {allowErrorWhenCacheExists = false, nocache = false}) {
+  Stream<String> _fetch(String url, {allowErrorWhenCacheExists = false, nocache = false}) {
     var controller = StreamController<String>();
     bool hasData = false;
-    JsonCacheManager().readAsString(url, headers: _headers, nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
+    _cache.readAsString(url, headers: _headers, nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
         onError: (e) {
           /// for 401 error we silently invoke onExpire handler
           if (e is HttpException && e.message.contains('401') &&
@@ -118,7 +120,7 @@ class HttpClient {
   }
 
   /// [throwError] if true then http error will be thrown as [HttpClientException]
-  static Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: false}) async {
+  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: false}) async {
     Map<String, String> h = {"Content-Type": "application/json"};
     h.addAll(_headers);
     if(headers!=null) h.addAll(headers);
@@ -132,7 +134,7 @@ class HttpClient {
     return response;
   }
 
-  static Future<http.Response> put(String url, String json, {Map<String,String>? headers}) async {
+  Future<http.Response> put(String url, String json, {Map<String,String>? headers}) async {
     Map<String, String> h = {"Content-Type": "application/json"};
     h.addAll(_headers);
     if(headers!=null) h.addAll(headers);
@@ -144,7 +146,7 @@ class HttpClient {
   }
 
   /// get request without caching (unlike [_fetch])
-  static Future<http.Response> get(String url) async {
+  Future<http.Response> get(String url) async {
     Map<String, String> h = {"Content-Type": "application/json"};
     h.addAll(_headers);
     var response = await _client.get(Uri.parse(url), headers: h);
@@ -157,7 +159,7 @@ class HttpClient {
     return response;
   }
 
-  static Future<http.Response> delete(String url) async {
+  Future<http.Response> delete(String url) async {
     var response = await _client.delete(Uri.parse(url), headers: _headers);
     if (response.statusCode < 200 || response.statusCode >= 400) {
       if(response.statusCode == 401) { if(_onBearerExpire!=null) _onBearerExpire?.call(); throw "$url: Пользователь не авторизован"; }
@@ -166,10 +168,7 @@ class HttpClient {
     return response;
   }
 
-  static void logout() => _onBearerExpire?.call();
-
-  @visibleForTesting
-  static void setClient(http.Client client) { _client = client; }
+  void logout() => _onBearerExpire?.call();
 }
 
 class HttpClientException implements HttpException {
@@ -188,26 +187,22 @@ class HttpClientException implements HttpException {
 
 /// [BaseCacheManager] variant that always download file (after returning it from memory or cache firstly)
 class JsonCacheManager {
-  static final String _key = (JsonCacheManager).toString();
-  static JsonCacheManager? _instance;
+  static late String _key = (JsonCacheManager).toString();
+  static late Logger _log = Logger(_key);
 
-  Map<String, StreamController<String>> _downloads = HashMap();
-  final _log = Logger(_key);
-  CacheManager _cache;
+  final Map<String, StreamController<String>> _downloads = HashMap();
+  final CacheManager _cache;
 
-  factory JsonCacheManager() {
-    if (_instance == null) {
-      final cache = CacheManager(
-        Config(
-          _key,
-          stalePeriod: const Duration(days: 30),
-          maxNrOfCacheObjects: 100,
-          fileService: HttpFileService(httpClient: HttpClient._client),
-        ),
-      );
-      _instance = JsonCacheManager._internal(cache);
-    }
-    return _instance!;
+  factory JsonCacheManager(http.Client client) {
+    final cache = CacheManager(
+      Config(
+        _key,
+        stalePeriod: const Duration(days: 30),
+        maxNrOfCacheObjects: 100,
+        fileService: HttpFileService(httpClient: client),
+      ),
+    );
+    return JsonCacheManager._internal(cache);;
   }
 
   JsonCacheManager._internal(this._cache);

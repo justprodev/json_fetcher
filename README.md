@@ -12,18 +12,30 @@ But, a data will be always updated at second step. Thats why the ```Stream<T>```
 
 ```dart
 class Typical {
-  String data;
+  String? data;
 
   static Typical fromMap(Map<String, dynamic> map) {
-    if (map == null) return null;
-
     Typical typical = Typical();
     typical.data = map['data'];
     return typical;
   }
+
+  // needed just for test
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Typical &&
+          runtimeType == other.runtimeType &&
+          data == other.data;
+
+  // needed just for test
+  @override
+  int get hashCode => data.hashCode;
 }
 
 class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
+  _TypicalFetcher(JsonHttpClient client) : super(client);
+
   /// compute json parsing in separated thread
   @override
   Future<List<Typical>> parse(String source) => compute(_parseTypicals, source);
@@ -34,14 +46,7 @@ class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
   }
 }
 
-// This is where you always get the online data, but you get the cached data first, if any
-Stream<List<Typical>> fetchTypicals() => _TypicalFetcher().fetch("https://host/api/typicals");
+Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix) => _TypicalFetcher(client).fetch(prefix+GET_TYPICALS_METHOD);
 ```
 
 Also, see [test/json_fetcher_test.dart](test/json_fetcher_test.dart)
-
-## TODO
-
-Refactor from "one instance using" (i.e. static accessing, etc) 
-to many instances with injecting parts in the constructors. 
-To possibly testing without MockWebServer and for using with DI.
