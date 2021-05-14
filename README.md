@@ -19,18 +19,6 @@ class Typical {
     typical.data = map['data'];
     return typical;
   }
-
-  // needed just for test
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Typical &&
-          runtimeType == other.runtimeType &&
-          data == other.data;
-
-  // needed just for test
-  @override
-  int get hashCode => data.hashCode;
 }
 
 class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
