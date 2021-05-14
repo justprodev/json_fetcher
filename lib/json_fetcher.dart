@@ -66,6 +66,7 @@ abstract class HttpJsonFetcher<T> {
 
 /// Client especially for fetching json from host(s)
 /// It controls authentication via [setAuth] and used by [HttpJsonFetcher] to parse/cache json's
+/// [cache] can be used to directly control the cache (i.e. [JsonCacheManager.emptyCache]/[JsonCacheManager.removeFile])
 class JsonHttpClient {
   final http.Client _client;
   /// cache manager used by [HttpJsonFetcher]
@@ -162,6 +163,8 @@ class JsonHttpClient {
   }
 
   void logout() => _onBearerExpire?.call();
+
+  JsonCacheManager get cache => _cache;
 }
 
 class HttpClientException implements HttpException {
