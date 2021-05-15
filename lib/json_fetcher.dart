@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
+
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
@@ -72,40 +73,31 @@ abstract class HttpJsonFetcher<T> {
 
 enum _HTTP_ACTION { get, post, put, delete }
 
+/// Used when [JsonHttpClient] operates with services which are needs authentication
+class AuthInfo {
+  /// provide permanent headers across [JsonHttpClient]
+  final Map<String,String>? Function() headers;
+  /// Will be called for 401 error ([authHeaders] will be removed from the header immediately),
+  /// `isRepeat`==true means that handler was called  at second, because a new auth data is wrong (refreshToken can't succeeded or etc),
+  ///  and We probably should redirect to login page
+  final Future<void> Function(bool isRepeat) onExpire;
+
+  AuthInfo(this.headers, this.onExpire);
+}
+
 /// Client especially for fetching json from host(s)
-/// It controls authentication via [setAuth] and used by [HttpJsonFetcher] to parse/cache json's
 /// [cache] can be used to directly control the cache (i.e. [JsonCacheManager.emptyCache]/[JsonCacheManager.removeFile])
 class JsonHttpClient {
   final http.Client _client;
+  final AuthInfo? auth;
   /// cache manager used by [HttpJsonFetcher]
   late JsonCacheManager _cache = JsonCacheManager(_client);
 
   static final _log = Logger((JsonHttpClient).toString());
-  /// permanent headers across client
-  Map<String,String> _headers = Map();
-  Future<void> Function(bool isRepeat)? _onExpire;
+
   Function(String url, dynamic document)? _fetchHandler;
 
-  JsonHttpClient(this._client);
-
-  /// Sets the auth headers like "Authorization: Bearer $token" or anythings else
-  /// These headers will be include in every call
-  ///
-  /// [onExpire] will be called for 401 error ([authHeaders] will be removed from the header immediately),
-  /// `isRepeat`==true means that handler was called  at second, because a new auth data is wrong (refreshToken can't succeeded or etc),
-  ///  and We probably should redirect to login page
-  ///
-  void setAuth(Map<String, String> authHeaders, Future<void> Function(bool isRepeat) onExpire) {
-    _headers.addAll(authHeaders);
-    _onExpire = (bool _isRepeat) async {
-      authHeaders.keys.forEach((header)=>_headers.remove(header));
-      try {
-        await onExpire(_isRepeat);
-      } catch(e) {
-        _log.severe("Error while do onExpire($_isRepeat)", e);
-      }
-    };
-  }
+  JsonHttpClient(this._client, {this.auth});
 
   /// [handler] will be called when [HttpJsonFetcher] completes parsing an document
   /// which was fetched from [url] from network (not from cache!)
@@ -131,7 +123,7 @@ class JsonHttpClient {
     return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, throwError: throwError);
   }
 
-  void logout() => _onExpire?.call(true);
+  void logout() => auth?.onExpire.call(true);
 
   JsonCacheManager get cache => _cache;
 
@@ -142,20 +134,20 @@ class JsonHttpClient {
     late Function(bool allowCloseStream) action;
     bool isOnExpireCalled = false;
 
-    action = (allowCloseStream) => _cache.readAsString(url, headers: _headers, nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
+    action = (allowCloseStream) => _cache.readAsString(url, headers: auth?.headers(), nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
         onError: (e) {
           /// for 401 error we invoke onExpire handler
-          if (e is HttpException && e.message.contains('401') && _onExpire != null) {
+          if (e is HttpException && e.message.contains('401') && auth != null) {
             if(!isOnExpireCalled) {
               allowCloseStream = false;   // block closing stream
 
-              _onExpire?.call(false).then((_) {
+              auth?.onExpire.call(false).then((_) {
                 action(true);
               }); // refresh auth data and resubmit latest call
 
               isOnExpireCalled = true;
             } else {
-              _onExpire?.call(true);                 // just inform because is second attempt
+              auth?.onExpire.call(true);                 // just inform because is second attempt
               allowCloseStream = true;               // allow closing anyway
             }
           }
@@ -173,7 +165,8 @@ class JsonHttpClient {
 
     Future<http.Response> makeRequest() {
       final Map<String, String> h = {"Content-Type": "application/json"};
-      h.addAll(_headers);
+      final authHeaders = auth!.headers();
+      if(authHeaders!=null) h.addAll(authHeaders);
       if(headers!=null) h.addAll(headers);
 
       switch(actionType) {
@@ -190,8 +183,8 @@ class JsonHttpClient {
       if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
       if (response.statusCode < 200 || response.statusCode >= 400) {
         /// for 401 error we silently invoke onExpire handler
-        if (response.statusCode==401 && _onExpire != null) {
-          await _onExpire?.call(isOnExpireCalled);         // refresh auth data
+        if (response.statusCode==401 && auth != null) {
+          await auth!.onExpire.call(isOnExpireCalled);         // refresh auth data
           if(!isOnExpireCalled) {
             return await action(true);                     // resubmit latest call & return here because error handled inside action (thrown, etc)
           }

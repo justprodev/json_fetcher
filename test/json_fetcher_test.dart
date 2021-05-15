@@ -3,6 +3,7 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
@@ -57,14 +58,11 @@ void main() {
   List<Typical> generate(List<String> data) => <Typical>[]..addAll(data.map((e) => Typical()..data = e));
 
   JsonHttpClient createClient() {
-    final JsonHttpClient client = JsonHttpClient(Client());
-    late Future<void> Function(bool) refreshToken;
-    refreshToken = (bool) async {
-      // updates token, using same onExpire handler
-      //await Future.delayed(Duration(seconds: 1), () => client.setAuth(authHeaders2, refreshToken));
-      client.setAuth(authHeaders2, refreshToken);
-    };
-    client.setAuth(authHeaders1, refreshToken);
+    var selectedAuthHeaders = authHeaders1;
+    final JsonHttpClient client = JsonHttpClient(
+        Client(),
+        auth: AuthInfo(() => selectedAuthHeaders,(isRepeat) async => selectedAuthHeaders = authHeaders2)
+    );
     return client;
   }
 
