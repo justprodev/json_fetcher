@@ -107,19 +107,19 @@ class JsonHttpClient {
   }
 
   /// [throwError] if true then http error will be thrown as [HttpClientException]
-  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: false}) async {
+  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: true}) async {
     return await _callHttpAction(_HTTP_ACTION.post, url, json, headers: headers, throwError: throwError);
   }
 
-  Future<http.Response> put(String url, String json, {Map<String,String>? headers, throwError: false}) async {
+  Future<http.Response> put(String url, String json, {Map<String,String>? headers, throwError: true}) async {
     return await _callHttpAction(_HTTP_ACTION.put, url, json, headers: headers, throwError: throwError);
   }
 
-  Future<http.Response> get(String url, {Map<String,String>? headers, throwError: false}) async {
+  Future<http.Response> get(String url, {Map<String,String>? headers, throwError: true}) async {
     return await _callHttpAction(_HTTP_ACTION.get, url, null, headers: headers, throwError: throwError);
   }
 
-  Future<http.Response> delete(String url, {Map<String,String>? headers, throwError: false}) async {
+  Future<http.Response> delete(String url, {Map<String,String>? headers, throwError: true}) async {
     return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, throwError: throwError);
   }
 
@@ -160,7 +160,7 @@ class JsonHttpClient {
     return controller.stream;
   }
 
-  Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: false}) async {
+  Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: true}) async {
     late Future<http.Response> Function(bool isOnExpireCalled) action;
 
     Future<http.Response> makeRequest() {
