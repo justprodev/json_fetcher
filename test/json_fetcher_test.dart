@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:json_fetcher/json_fetcher.dart';
+import 'package:json_fetcher/loggable_http_client.dart';
+import 'package:logging/logging.dart';
 import 'package:mock_web_server/mock_web_server.dart';
 
 final GET_TYPICALS_METHOD = "gettypicals"+DateTime.now().millisecond.toString();
@@ -57,10 +59,14 @@ void main() {
 
   List<Typical> generate(List<String> data) => <Typical>[]..addAll(data.map((e) => Typical()..data = e));
 
+  Logger.root.onRecord.listen((record) {
+    print(record.message);
+  });
+
   JsonHttpClient createClient() {
     var selectedAuthHeaders = authHeaders1;
     final JsonHttpClient client = JsonHttpClient(
-        Client(),
+        LoggableHttpClient(Client(), Logger((JsonHttpClient).toString())),
         auth: AuthInfo(() => selectedAuthHeaders,(isRepeat) async => selectedAuthHeaders = authHeaders2)
     );
     return client;
