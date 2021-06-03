@@ -27,7 +27,7 @@ class LoggableHttpClient extends BaseClient {
     }
     _logger.info(s);
     final response =  await _delegate.send(request);
-    s = "${request.method} ${request.url} <--";
+    s = "${request.method} ${request.url} <-- ${response.statusCode}";
     s += "\nheader: ${response.headers}";
 
     // Simple request
