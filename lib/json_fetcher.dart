@@ -6,7 +6,8 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
 
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
@@ -86,12 +87,12 @@ class AuthInfo {
 }
 
 /// Client especially for fetching json from host(s)
-/// [cache] can be used to directly control the cache (i.e. [JsonCacheManager.emptyCache]/[JsonCacheManager.removeFile])
+/// [cache] can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
 class JsonHttpClient {
   final http.Client _client;
   final AuthInfo? auth;
   /// cache manager used by [HttpJsonFetcher]
-  late JsonCacheManager _cache = JsonCacheManager(_client);
+  late JsonCache _cache = _JsonHiveCache(this);
 
   static final _log = Logger((JsonHttpClient).toString());
 
@@ -125,7 +126,7 @@ class JsonHttpClient {
 
   void logout() => auth?.onExpire.call(true);
 
-  JsonCacheManager get cache => _cache;
+  JsonCache get cache => _cache;
 
   // private:
   Stream<String> _fetch(String url, {allowErrorWhenCacheExists = false, nocache = false}) {
@@ -134,7 +135,7 @@ class JsonHttpClient {
     late Function(bool allowCloseStream) action;
     bool isOnExpireCalled = false;
 
-    action = (allowCloseStream) => _cache.readAsString(url, headers: auth?.headers(), nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
+    action = (allowCloseStream) => _cache.get(url, headers: auth?.headers(), nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
         onError: (e) {
           /// for 401 error we invoke onExpire handler
           if (e is HttpException && e.message.contains('401') && auth != null) {
@@ -212,30 +213,33 @@ class HttpClientException implements HttpException {
   Uri? get uri => response.request?.url;
 }
 
-/// [BaseCacheManager] variant that always download file (after returning it from memory or cache firstly)
-class JsonCacheManager {
-  static late String _key = (JsonCacheManager).toString();
-  static late Logger _log = Logger(_key);
+/// always download file (after returning it from memory or cache firstly)
+abstract class JsonCache {
+  Stream<String> get(String url, {Map<String, String>? headers, nocache: false});
+  Future<void> evict(key);
+  Future<void> emptyCache();
+}
 
-  final Map<String, StreamController<String>> _downloads = HashMap();
-  final CacheManager _cache;
+class _JsonHiveCache implements JsonCache {
+  final JsonHttpClient client;
 
-  factory JsonCacheManager(http.Client client) {
-    final cache = CacheManager(
-      Config(
-        _key,
-        stalePeriod: const Duration(days: 30),
-        maxNrOfCacheObjects: 100,
-        fileService: HttpFileService(httpClient: client),
-      ),
-    );
-    return JsonCacheManager._internal(cache);;
+  static late Logger _log = Logger((_JsonHiveCache).toString());
+
+  late final Map<String, StreamController<String>> _downloads = HashMap();
+  late final LazyBox _cache;
+
+  bool _isInit = false;
+
+  _JsonHiveCache(this.client);
+
+  Future<void> _init() async {
+    await Hive.initFlutter();
+    _cache = await Hive.openLazyBox('__hive_json_hive_cache');
+    _isInit = true;
   }
 
-  JsonCacheManager._internal(this._cache);
-
   /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
-  Stream<String> readAsString(String url, {Map<String, String>? headers, nocache: false}) {
+  Stream<String> get(String url, {Map<String, String>? headers, nocache: false}) {
     StreamController<String>? oldController = _downloads[url];
 
     if(oldController!=null && !oldController.isClosed) oldController.close(); // prev download started, drop it
@@ -243,22 +247,23 @@ class JsonCacheManager {
     StreamController<String> controller = StreamController();
     _downloads[url] = controller;
 
-    void _getFile() async {
+    void _getValue() async {
       try {
-        FileInfo? f;
+        if(!_isInit) await _init();
+
         String? cachedString;
 
         if(!nocache) {
-          f = await _cache.getFileFromCache(url);
-          if (f != null) if (!controller.isClosed) controller.add(
-              cachedString = await f.file.readAsString()); // cache
+          cachedString = await _cache.get(url);
+          if(cachedString!=null && !controller.isClosed) {
+            controller.add(cachedString);
+          }
         }
 
         //print("download $url start");
-        var webFile = await _cache.downloadFile(url, authHeaders: headers, force: true);
+        final onlineString = await _download(url, authHeaders: headers);
         //print("download $url stop");
         if (!controller.isClosed) {
-          final String onlineString = await webFile.file.readAsString();
           if(onlineString != cachedString) // skip if a data the same
             controller.add(onlineString);
         } // online
@@ -271,11 +276,17 @@ class JsonCacheManager {
       }
     }
 
-    _getFile();
+    _getValue();
 
     return controller.stream;
   }
 
-  Future<void> removeFile(key) => _cache.removeFile(key);
-  Future<void> emptyCache() => _cache.emptyCache();
+  Future<String> _download(String url, {Map<String, String>? authHeaders}) async {
+    final String value = (await client.get(url)).body;
+    await _cache.put(url, value);
+    return value;
+  }
+
+  Future<void> evict(key) => _cache.delete(key);
+  Future<void> emptyCache() => _cache.clear();
 }

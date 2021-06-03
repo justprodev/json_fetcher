@@ -127,10 +127,10 @@ void main() {
       count++;
     });
     await s.asFuture();s.cancel();
-    // return two cached arrays because of resubmit
-    expect(count, equals(2));
+    // resubmit happens silently
+    expect(count, equals(1));
 
-    // 401 response rerquested with authHeaders1
+    // 401 response requested with authHeaders1
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
