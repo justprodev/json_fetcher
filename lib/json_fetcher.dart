@@ -81,7 +81,8 @@ class AuthInfo {
   /// Will be called for 401 error ([authHeaders] will be removed from the header immediately),
   /// `isRepeat`==true means that handler was called  at second, because a new auth data is wrong (refreshToken can't succeeded or etc),
   ///  and We probably should redirect to login page
-  final Future<void> Function(bool isRepeat) onExpire;
+  /// returns: true if toke is refreshed
+  final Future<bool> Function(bool logout) onExpire;
 
   AuthInfo(this.headers, this.onExpire);
 }
@@ -132,37 +133,21 @@ class JsonHttpClient {
   Stream<String> _fetch(String url, {allowErrorWhenCacheExists = false, nocache = false}) {
     var controller = StreamController<String>();
     bool hasData = false;
-    late Function(bool allowCloseStream) action;
-    bool isOnExpireCalled = false;
 
-    action = (allowCloseStream) => _cache.get(url, headers: auth?.headers(), nocache: nocache).listen((String s) { controller.add(s); hasData = true; },
+    _cache.get(url, headers: auth?.headers(), nocache: nocache).listen(
+        (String s) { controller.add(s); hasData = true; },
         onError: (e) {
-          /// for 401 error we invoke onExpire handler
-          if (e is HttpException && e.message.contains('401') && auth != null) {
-            if(!isOnExpireCalled) {
-              allowCloseStream = false;   // block closing stream
-
-              auth?.onExpire.call(false).then((_) {
-                action(true);
-              }); // refresh auth data and resubmit latest call
-
-              isOnExpireCalled = true;
-            } else {
-              auth?.onExpire.call(true);                 // just inform because is second attempt
-              allowCloseStream = true;               // allow closing anyway
-            }
-          }
           if(allowErrorWhenCacheExists || !hasData) controller.addError(e);
           _log.severe("Error while fetching $url", e);
-        }, onDone: () { if(allowCloseStream) controller.close(); });
-
-    action(true);
+        },
+        onDone: () { controller.close(); }
+    );
 
     return controller.stream;
   }
 
   Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: true}) async {
-    late Future<http.Response> Function(bool isOnExpireCalled) action;
+    late Future<http.Response> Function() action;
 
     Future<http.Response> makeRequest() {
       final Map<String, String> h = {"Content-Type": "application/json"};
@@ -178,16 +163,16 @@ class JsonHttpClient {
       }
     }
 
-    action = (isOnExpireCalled) async {
+    action = () async {
       var response = await makeRequest();
       final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
       if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
       if (response.statusCode < 200 || response.statusCode >= 400) {
         /// for 401 error we silently invoke onExpire handler
-        if (response.statusCode==401 && auth != null) {
-          await auth!.onExpire.call(isOnExpireCalled);         // refresh auth data
-          if(!isOnExpireCalled) {
-            return await action(true);                     // resubmit latest call & return here because error handled inside action (thrown, etc)
+        if (response.statusCode==401 && auth!=null) {
+          final refreshed = await auth!.onExpire.call(false);                     // refresh auth data
+          if(refreshed) {
+            return await action();                                           // resubmit latest call & return here because error handled inside action (thrown, etc)
           }
         }
         if(throwError) throw HttpClientException(response.reasonPhrase ?? "", response);
@@ -195,7 +180,7 @@ class JsonHttpClient {
       return response;
     };
 
-    return await action(false);
+    return await action();
   }
 }
 

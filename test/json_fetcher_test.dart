@@ -67,7 +67,7 @@ void main() {
     var selectedAuthHeaders = authHeaders1;
     final JsonHttpClient client = JsonHttpClient(
         LoggableHttpClient(Client(), Logger((JsonHttpClient).toString())),
-        auth: AuthInfo(() => selectedAuthHeaders,(isRepeat) async => selectedAuthHeaders = authHeaders2)
+        auth: AuthInfo(() => selectedAuthHeaders, (bool) async { selectedAuthHeaders = authHeaders2; return true; })
     );
     return client;
   }
