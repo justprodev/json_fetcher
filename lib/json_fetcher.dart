@@ -109,20 +109,20 @@ class JsonHttpClient {
   }
 
   /// [throwError] if true then http error will be thrown as [HttpClientException]
-  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: true}) async {
-    return await _callHttpAction(_HTTP_ACTION.post, url, json, headers: headers, throwError: throwError);
+  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.post, url, json, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
   }
 
-  Future<http.Response> put(String url, String json, {Map<String,String>? headers, throwError: true}) async {
-    return await _callHttpAction(_HTTP_ACTION.put, url, json, headers: headers, throwError: throwError);
+  Future<http.Response> put(String url, String json, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.put, url, json, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
   }
 
-  Future<http.Response> get(String url, {Map<String,String>? headers, throwError: true}) async {
-    return await _callHttpAction(_HTTP_ACTION.get, url, null, headers: headers, throwError: throwError);
+  Future<http.Response> get(String url, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.get, url, null, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
   }
 
-  Future<http.Response> delete(String url, {Map<String,String>? headers, throwError: true}) async {
-    return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, throwError: throwError);
+  Future<http.Response> delete(String url, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
   }
 
   void logout() => auth?.onExpire.call(true);
@@ -146,7 +146,7 @@ class JsonHttpClient {
     return controller.stream;
   }
 
-  Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: true}) async {
+  Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
     late Future<http.Response> Function() action;
 
     Future<http.Response> makeRequest() {
@@ -169,7 +169,7 @@ class JsonHttpClient {
       if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
       if (response.statusCode < 200 || response.statusCode >= 400) {
         /// for 401 error we silently invoke onExpire handler
-        if (response.statusCode==401 && auth!=null) {
+        if (response.statusCode==401 && auth!=null && !skipCheckingExpiration) {
           final refreshed = await auth!.onExpire.call(false);                     // refresh auth data
           if(refreshed) {
             return await action();                                           // resubmit latest call & return here because error handled inside action (thrown, etc)
