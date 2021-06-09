@@ -173,6 +173,9 @@ class JsonHttpClient {
           final refreshed = await auth!.onExpire.call(false);                     // refresh auth data
           if(refreshed) {
             return await action();                                           // resubmit latest call & return here because error handled inside action (thrown, etc)
+          } else {
+            // logout
+            await auth!.onExpire.call(true);
           }
         }
         if(throwError) throw HttpClientException(response.reasonPhrase ?? "", response);
