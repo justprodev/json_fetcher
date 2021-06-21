@@ -146,7 +146,11 @@ class JsonHttpClient {
     return controller.stream;
   }
 
-  Future<http.Response> _callHttpAction(_HTTP_ACTION actionType, String url, String? json, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
+  Future<http.Response> _callHttpAction(
+      _HTTP_ACTION actionType,
+      String url, String? json,
+      {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}
+  ) async {
     late Future<http.Response> Function() action;
 
     Future<http.Response> makeRequest() {
@@ -170,7 +174,7 @@ class JsonHttpClient {
       if (response.statusCode < 200 || response.statusCode >= 400) {
         /// for 401 error we silently invoke onExpire handler
         if (response.statusCode==401 && auth!=null && !skipCheckingExpiration) {
-          final refreshed = await auth!.onExpire.call(false);                     // refresh auth data
+          final refreshed = await _onExpire();                // refresh auth data
           if(refreshed) {
             return await action();                                           // resubmit latest call & return here because error handled inside action (thrown, etc)
           } else {
@@ -185,6 +189,27 @@ class JsonHttpClient {
 
     return await action();
   }
+
+  /// process onExpire calls in one place
+  /// to make additional routing, to prevent extra calls and etc
+  Future<bool> _onExpire() {
+    // any case
+    if(auth == null) return Future.value(false);
+
+    // when we already waiting onExpire() call, then don't create new one,
+    // instead we will return the same call
+    final oldCall = _onExpireFuture;
+    if(oldCall != null) return oldCall;
+
+    // create only if not exists
+    final newCall = auth!.onExpire.call(false);
+    // inform everyone that we are ready for a new call, when old is complete
+    newCall.whenComplete(() => _onExpireFuture = null);
+    _onExpireFuture = newCall;
+    return newCall;
+  }
+
+  Future<bool>? _onExpireFuture;
 }
 
 class HttpClientException implements HttpException {
