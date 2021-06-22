@@ -3,13 +3,12 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:collection';
 import 'dart:io';
 
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+
+import 'cache/hive.dart';
 
 ///
 /// Universal fetcher for JSON by HTTP
@@ -93,7 +92,7 @@ class JsonHttpClient {
   final http.Client _client;
   final AuthInfo? auth;
   /// cache manager used by [HttpJsonFetcher]
-  late JsonCache _cache = _JsonHiveCache(this);
+  late JsonCache _cache = JsonHiveCache(this);
 
   static final _log = Logger((JsonHttpClient).toString());
 
@@ -227,79 +226,13 @@ class HttpClientException implements HttpException {
 }
 
 /// always download file (after returning it from memory or cache firstly)
+/// very simple interface
 abstract class JsonCache {
+  /// get file.
+  /// probably stream will be closed after receiving file from the network
   Stream<String> get(String url, {Map<String, String>? headers, nocache: false});
+  /// force remove file from the cache
   Future<void> evict(key);
+  /// empty the cache entirely
   Future<void> emptyCache();
-}
-
-class _JsonHiveCache implements JsonCache {
-  final JsonHttpClient client;
-
-  static late Logger _log = Logger((_JsonHiveCache).toString());
-
-  late final Map<String, StreamController<String>> _downloads = HashMap();
-  late final LazyBox _cache;
-
-  bool _isInit = false;
-
-  _JsonHiveCache(this.client);
-
-  Future<void> _init() async {
-    await Hive.initFlutter();
-    _cache = await Hive.openLazyBox('__hive_json_hive_cache');
-    _isInit = true;
-  }
-
-  /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
-  Stream<String> get(String url, {Map<String, String>? headers, nocache: false}) {
-    StreamController<String>? oldController = _downloads[url];
-
-    if(oldController!=null && !oldController.isClosed) oldController.close(); // prev download started, drop it
-
-    StreamController<String> controller = StreamController();
-    _downloads[url] = controller;
-
-    void _getValue() async {
-      try {
-        if(!_isInit) await _init();
-
-        String? cachedString;
-
-        if(!nocache) {
-          cachedString = await _cache.get(url);
-          if(cachedString!=null && !controller.isClosed) {
-            controller.add(cachedString);
-          }
-        }
-
-        //print("download $url start");
-        final onlineString = await _download(url, authHeaders: headers);
-        //print("download $url stop");
-        if (!controller.isClosed) {
-          if(onlineString != cachedString) // skip if a data the same
-            controller.add(onlineString);
-        } // online
-      } catch (e, trace) {
-        _log.severe("Failed to download file from $url", e, trace);
-        if(!controller.isClosed) controller.addError(e);
-      } finally {
-        if(!controller.isClosed) await controller.close();
-        _downloads.remove(url);
-      }
-    }
-
-    _getValue();
-
-    return controller.stream;
-  }
-
-  Future<String> _download(String url, {Map<String, String>? authHeaders}) async {
-    final String value = (await client.get(url)).body;
-    await _cache.put(url, value);
-    return value;
-  }
-
-  Future<void> evict(key) => _cache.delete(key);
-  Future<void> emptyCache() => _cache.clear();
 }
