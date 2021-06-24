@@ -64,10 +64,15 @@ abstract class HttpJsonFetcher<T> {
   }
 
   Future<T> _parse(String url, String source) async {
-    final o = await parse(source);
-    if(_step>0) _client._fetchHandler?.call(url, o);
-    _step++;
-    return o;
+    try {
+      final o = await parse(source);
+      if (_step > 0) _client._fetchHandler?.call(url, o);
+      _step++;
+      return o;
+    } catch(e, trace) {
+      JsonHttpClient._log.severe(e.toString(), e, trace);
+      throw e;
+    }
   }
 }
 
