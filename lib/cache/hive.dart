@@ -21,9 +21,9 @@ class JsonHiveCache implements JsonCache {
   JsonHiveCache(this.client);
 
   Future<void> _init() async {
+    _isInit = true;
     await Hive.initFlutter();
     _cache = await Hive.openLazyBox('__hive_json_hive_cache');
-    _isInit = true;
   }
 
   /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
