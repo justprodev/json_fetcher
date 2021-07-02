@@ -30,10 +30,10 @@ class JsonHiveCache implements JsonCache {
         if(_isInit) return;  // for any case
         await Hive.initFlutter();
         try {
-          await Hive.openLazyBox(_BOX_NAME);
+          _cache = await Hive.openLazyBox(_BOX_NAME);
         } catch(e) {
           await Hive.deleteBoxFromDisk(_BOX_NAME);
-          await Hive.openLazyBox(_BOX_NAME);
+          _cache = await Hive.openLazyBox(_BOX_NAME);
         }
         _isInit = true; // complete
         _initializing = null;
