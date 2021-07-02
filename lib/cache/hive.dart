@@ -27,7 +27,7 @@ class JsonHiveCache implements JsonCache {
       Future<void> init() async {
         if(_isInit) return;  // for any case
         await Hive.initFlutter();
-        await Hive.openLazyBox('__hive_json_hive_cache');
+        _cache = await Hive.openLazyBox('__hive_json_hive_cache');
         _isInit = true; // complete
         _initializing = null;
       }
