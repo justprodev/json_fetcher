@@ -8,6 +8,8 @@ import '../json_fetcher.dart';
 
 /// Created by alex@justprodev.com on 22.06.2021.
 
+const _BOX_NAME = '__hive_json_hive_cache';
+
 class JsonHiveCache implements JsonCache {
   final JsonHttpClient client;
 
@@ -27,7 +29,12 @@ class JsonHiveCache implements JsonCache {
       Future<void> init() async {
         if(_isInit) return;  // for any case
         await Hive.initFlutter();
-        _cache = await Hive.openLazyBox('__hive_json_hive_cache');
+        try {
+          await Hive.openLazyBox(_BOX_NAME);
+        } catch(e) {
+          await Hive.deleteBoxFromDisk(_BOX_NAME);
+          await Hive.openLazyBox(_BOX_NAME);
+        }
         _isInit = true; // complete
         _initializing = null;
       }
