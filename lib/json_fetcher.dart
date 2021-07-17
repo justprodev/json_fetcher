@@ -172,6 +172,7 @@ class JsonHttpClient {
         }
       } catch(e, trace) {
         _log.severe('error sending network request', e, trace);
+        throw e;
       }
     }
 
