@@ -157,19 +157,21 @@ class JsonHttpClient {
   ) async {
     late Future<http.Response> Function() action;
 
-    Future<http.Response> makeRequest() {
+    Future<http.Response> makeRequest() async {
       final Map<String, String> h = {"Content-Type": "application/json"};
       final authHeaders = auth!.headers();
       if(authHeaders!=null) h.addAll(authHeaders);
       if(headers!=null) h.addAll(headers);
 
       try {
+        final response;
         switch(actionType) {
-          case _HTTP_ACTION.get: return _client.get(Uri.parse(url), headers: h);
-          case _HTTP_ACTION.post: return _client.post(Uri.parse(url), body: json, headers: h);
-          case _HTTP_ACTION.put: return _client.put(Uri.parse(url), body: json, headers: h);
-          case _HTTP_ACTION.delete: return _client.delete(Uri.parse(url), body: json, headers: h);
+          case _HTTP_ACTION.get: response = await _client.get(Uri.parse(url), headers: h); break;
+          case _HTTP_ACTION.post: response = await _client.post(Uri.parse(url), body: json, headers: h); break;
+          case _HTTP_ACTION.put: response = await _client.put(Uri.parse(url), body: json, headers: h); break;
+          case _HTTP_ACTION.delete: response = await _client.delete(Uri.parse(url), body: json, headers: h); break;
         }
+        return response;
       } catch(e, trace) {
         _log.severe('error sending network request', e, trace);
         throw e;
