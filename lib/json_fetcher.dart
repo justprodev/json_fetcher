@@ -163,11 +163,15 @@ class JsonHttpClient {
       if(authHeaders!=null) h.addAll(authHeaders);
       if(headers!=null) h.addAll(headers);
 
-      switch(actionType) {
-        case _HTTP_ACTION.get: return _client.get(Uri.parse(url), headers: h);
-        case _HTTP_ACTION.post: return _client.post(Uri.parse(url), body: json, headers: h);
-        case _HTTP_ACTION.put: return _client.put(Uri.parse(url), body: json, headers: h);
-        case _HTTP_ACTION.delete: return _client.delete(Uri.parse(url), body: json, headers: h);
+      try {
+        switch(actionType) {
+          case _HTTP_ACTION.get: return _client.get(Uri.parse(url), headers: h);
+          case _HTTP_ACTION.post: return _client.post(Uri.parse(url), body: json, headers: h);
+          case _HTTP_ACTION.put: return _client.put(Uri.parse(url), body: json, headers: h);
+          case _HTTP_ACTION.delete: return _client.delete(Uri.parse(url), body: json, headers: h);
+        }
+      } catch(e, trace) {
+        _log.severe('error sending network request', e, trace);
       }
     }
 
