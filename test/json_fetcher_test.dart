@@ -12,6 +12,8 @@ import 'package:json_fetcher/loggable_http_client.dart';
 import 'package:logging/logging.dart';
 import 'package:mock_web_server/mock_web_server.dart';
 
+import 'fake_path_provider.dart';
+
 final GET_TYPICALS_METHOD = "gettypicals"+DateTime.now().millisecond.toString();
 const TYPICAL_DATA1 = "data1";
 const TYPICAL_DATA2 = "data2";
@@ -54,6 +56,8 @@ class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
 Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix) => _TypicalFetcher(client).fetch(prefix+GET_TYPICALS_METHOD);
 
 void main() {
+  setUpFakePathProvider();
+
   final Map<String,String> authHeaders1 = {'authorization': 'Bearer 12345'};
   final Map<String,String> authHeaders2 = {'authorization': 'Bearer 67890'};
 
