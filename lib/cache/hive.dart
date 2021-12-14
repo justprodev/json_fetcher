@@ -47,7 +47,8 @@ class JsonHiveCache implements JsonCache {
   Stream<String> get(String url, {Map<String, String>? headers, nocache: false}) {
     StreamController<String>? oldController = _downloads[url];
 
-    if(oldController!=null && !oldController.isClosed) oldController.close(); // prev download started, drop it
+    // prev download started - return it
+    if(oldController!=null && !oldController.isClosed) return oldController.stream;
 
     StreamController<String> controller = StreamController();
     _downloads[url] = controller;
