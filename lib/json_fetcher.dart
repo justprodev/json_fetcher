@@ -3,7 +3,7 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' show HttpHeaders, HttpException;
 
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
