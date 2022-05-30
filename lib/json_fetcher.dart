@@ -193,6 +193,7 @@ class JsonHttpClient {
             await auth!.onExpire.call(true);
           }
         }
+        _log.severe('Error while ${actionType.name} $url ${json!=null?'($json)':''}: code=${response.statusCode} body=${response.body}');
         if(throwError) throw HttpClientException(response.reasonPhrase ?? "", response);
       }
       return response;
