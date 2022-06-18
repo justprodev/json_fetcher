@@ -59,7 +59,7 @@ abstract class HttpJsonFetcher<T> {
 
   /// just get without caching
   Future<T> get(String url, {Map<String,String>? headers}) async {
-    final String jsonString = (await _client.get(url, headers: headers, throwError: true)).body;
+    final String jsonString = (await _client.get(url, headers: headers)).body;
     return await _parse(url, jsonString);
   }
 
@@ -113,20 +113,20 @@ class JsonHttpClient {
   }
 
   /// [throwError] if true then http error will be thrown as [HttpClientException]
-  Future<http.Response> post(String url, String json, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
-    return await _callHttpAction(_HTTP_ACTION.post, url, json, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
+  Future<http.Response> post(String url, String json, {Map<String,String>? headers, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.post, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
   }
 
-  Future<http.Response> put(String url, String json, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
-    return await _callHttpAction(_HTTP_ACTION.put, url, json, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
+  Future<http.Response> put(String url, String json, {Map<String,String>? headers, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.put, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
   }
 
-  Future<http.Response> get(String url, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
-    return await _callHttpAction(_HTTP_ACTION.get, url, null, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
+  Future<http.Response> get(String url, {Map<String,String>? headers, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.get, url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
   }
 
-  Future<http.Response> delete(String url, {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}) async {
-    return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, throwError: throwError, skipCheckingExpiration: skipCheckingExpiration);
+  Future<http.Response> delete(String url, {Map<String,String>? headers, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HTTP_ACTION.delete, url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
   }
 
   void logout() => auth?.onExpire.call(true);
@@ -152,7 +152,7 @@ class JsonHttpClient {
   Future<http.Response> _callHttpAction(
       _HTTP_ACTION actionType,
       String url, String? json,
-      {Map<String,String>? headers, throwError: true, skipCheckingExpiration: false}
+      {Map<String,String>? headers, skipCheckingExpiration: false}
   ) async {
     late Future<http.Response> Function() action;
 
@@ -162,40 +162,43 @@ class JsonHttpClient {
       if(authHeaders!=null) h.addAll(authHeaders);
       if(headers!=null) h.addAll(headers);
 
-      try {
-        final response;
-        switch(actionType) {
-          case _HTTP_ACTION.get: response = await _client.get(Uri.parse(url), headers: h); break;
-          case _HTTP_ACTION.post: response = await _client.post(Uri.parse(url), body: json, headers: h); break;
-          case _HTTP_ACTION.put: response = await _client.put(Uri.parse(url), body: json, headers: h); break;
-          case _HTTP_ACTION.delete: response = await _client.delete(Uri.parse(url), body: json, headers: h); break;
-        }
-        return response;
-      } catch(e, trace) {
-        _log.severe('error sending network request', e, trace);
-        throw e;
+      final response;
+      switch(actionType) {
+        case _HTTP_ACTION.get: response = await _client.get(Uri.parse(url), headers: h); break;
+        case _HTTP_ACTION.post: response = await _client.post(Uri.parse(url), body: json, headers: h); break;
+        case _HTTP_ACTION.put: response = await _client.put(Uri.parse(url), body: json, headers: h); break;
+        case _HTTP_ACTION.delete: response = await _client.delete(Uri.parse(url), body: json, headers: h); break;
       }
+      return response;
     }
 
     action = () async {
-      var response = await makeRequest();
-      final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
-      if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
-      if (response.statusCode < 200 || response.statusCode >= 400) {
-        /// for 401 error we silently invoke onExpire handler
-        if (response.statusCode==401 && auth!=null && !skipCheckingExpiration) {
-          final refreshed = await _onExpire();                // refresh auth data
-          if(refreshed) {
-            return await action();                                           // resubmit latest call & return here because error handled inside action (thrown, etc)
+      http.Response? response;
+      try {
+        response = await makeRequest();
+        final String contentType = response.headers[HttpHeaders.contentTypeHeader] ?? "application/json";
+        if(!contentType.contains("charset")) response.headers[HttpHeaders.contentTypeHeader] = contentType + ";charset=utf-8";
+        if (response.statusCode < 200 || response.statusCode >= 400) {
+          /// for 401 error we silently invoke onExpire handler
+          if (response.statusCode==401 && auth!=null && !skipCheckingExpiration) {
+            final refreshed = await _onExpire();                // refresh auth data
+            if(refreshed) {
+              return await action();                                           // resubmit latest call & return here because error handled inside action (thrown, etc)
+            } else {
+              // logout
+              await auth!.onExpire.call(true);
+            }
           } else {
-            // logout
-            await auth!.onExpire.call(true);
+            throw Exception;
           }
         }
-        _log.severe('Error while ${actionType.name} $url ${json!=null?'($json)':''}: code=${response.statusCode} body=${response.body}');
-        if(throwError) throw HttpClientException(response.reasonPhrase ?? "", response);
+        return response;
+      } catch(e, trace) {
+        String message = 'Error while ${actionType.name} $url ${json!=null?'($json)':''}';
+        if(response!=null) message += ': code=${response.statusCode} body=${response.body}';
+        _log.severe(message, e, trace);
+        throw HttpClientException(message, response: response, source: e);
       }
-      return response;
     };
 
     return await action();
@@ -224,17 +227,18 @@ class JsonHttpClient {
 }
 
 class HttpClientException implements HttpException {
-  final http.Response response;
+  final http.Response? response;
   final String message;
+  final Object? source;
 
-  HttpClientException(this.message, this.response);
+  HttpClientException(this.message, {this.response, this.source});
 
   String toString() {
-    return message + " (" + response.statusCode.toString() +")";
+    return message + " (" + (response?.statusCode.toString() ?? source?.toString() ?? '') +")";
   }
 
   @override
-  Uri? get uri => response.request?.url;
+  Uri? get uri => response?.request?.url;
 }
 
 /// always download file (after returning it from memory or cache firstly)
