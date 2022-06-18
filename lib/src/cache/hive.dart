@@ -1,3 +1,7 @@
+// Copyright (c) 2020-2022, alex@justprodev.com.
+// All rights reserved. Use of this source code is governed by a
+// MIT License that can be found in the LICENSE file.
+
 import 'dart:async';
 import 'dart:collection';
 
@@ -6,16 +10,12 @@ import 'package:logging/logging.dart';
 
 import '../json_fetcher.dart';
 
-/// Created by alex@justprodev.com on 22.06.2021.
-
 const _BOX_NAME = '__hive_json_hive_cache';
 
 // todo: move get outside, because is useful for any cache
 
 class JsonHiveCache implements JsonCache {
   final JsonHttpClient client;
-
-  static late Logger _log = Logger((JsonHiveCache).toString());
 
   late final Map<String, StreamController<String>> _downloads = HashMap();
   late final LazyBox _cache;
@@ -75,8 +75,7 @@ class JsonHiveCache implements JsonCache {
           if(onlineString != cachedString) // skip if a data the same
             controller.add(onlineString);
         } // online
-      } catch (e, trace) {
-        _log.severe("Failed to download file from $url", e, trace);
+      } catch (e) {
         if(!controller.isClosed) controller.addError(e);
       } finally {
         if(!controller.isClosed) await controller.close();
