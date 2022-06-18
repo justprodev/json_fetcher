@@ -1,10 +1,10 @@
-/// Created by alex@justprodev.com on 20.05.2021.
+// Copyright (c) 2020-2022, alex@justprodev.com.
+// All rights reserved. Use of this source code is governed by a
+// MIT License that can be found in the LICENSE file.
 import 'dart:convert';
 
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
-
-/// Created by alex@justprodev.com on 20.05.2021.
 
 /// utility for logging HTTP requests/responses
 class LoggableHttpClient extends BaseClient {
