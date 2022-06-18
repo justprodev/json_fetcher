@@ -10,6 +10,8 @@ import '../json_fetcher.dart';
 
 const _BOX_NAME = '__hive_json_hive_cache';
 
+// todo: move get outside, because is useful for any cache
+
 class JsonHiveCache implements JsonCache {
   final JsonHttpClient client;
 
