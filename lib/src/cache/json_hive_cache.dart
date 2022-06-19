@@ -6,16 +6,16 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:logging/logging.dart';
 
-import '../json_fetcher.dart';
+import '../json_cache.dart';
+import '../json_http_client.dart';
 
 const _BOX_NAME = '__hive_json_hive_cache';
 
 // todo: move get outside, because is useful for any cache
 
 class JsonHiveCache implements JsonCache {
-  final JsonHttpClient client;
+  final Future<String> Function(String url, Map<String, String>? headers) _get;
 
   late final Map<String, StreamController<String>> _downloads = HashMap();
   late final LazyBox _cache;
@@ -23,7 +23,7 @@ class JsonHiveCache implements JsonCache {
   bool _isInit = false;
   Future<void>? _initializing;
 
-  JsonHiveCache(this.client);
+  JsonHiveCache(this._get);
 
   Future<void> _init() async {
     if(_initializing==null) {
@@ -46,7 +46,9 @@ class JsonHiveCache implements JsonCache {
   }
 
   /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
+  @override
   Stream<String> get(String url, {Map<String, String>? headers, nocache: false}) {
+    // ignore: close_sinks, will be closed in other get() call, that initiated this download
     StreamController<String>? oldController = _downloads[url];
 
     // prev download started - return it
@@ -69,7 +71,7 @@ class JsonHiveCache implements JsonCache {
         }
 
         //print("download $url start");
-        final onlineString = await _download(url, authHeaders: headers);
+        final onlineString = await _download(url);
         //print("download $url stop");
         if (!controller.isClosed) {
           if(onlineString != cachedString) // skip if a data the same
@@ -88,8 +90,8 @@ class JsonHiveCache implements JsonCache {
     return controller.stream;
   }
 
-  Future<String> _download(String url, {Map<String, String>? authHeaders}) async {
-    final String value = (await client.get(url)).body;
+  Future<String> _download(String url, {Map<String, String>? headers}) async {
+    final String value = await _get(url, headers);
     await _cache.put(url, value);
     return value;
   }

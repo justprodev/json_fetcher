@@ -3,12 +3,14 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:json_fetcher/loggable_http_client.dart';
+import 'package:json_fetcher/src/auth_info.dart';
 import 'package:logging/logging.dart';
 import 'package:mock_web_server/mock_web_server.dart';
 
@@ -40,7 +42,7 @@ class Typical {
   int get hashCode => data.hashCode;
 }
 
-class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
+class _TypicalFetcher extends JsonHttpFetcher<List<Typical>> {
   _TypicalFetcher(JsonHttpClient client) : super(client);
 
   /// compute json parsing in separated thread
@@ -284,5 +286,54 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
 
     await server.shutdown();
+  });
+
+  test('errors', () async {
+    final JsonHttpClient client = createClient();
+    final MockWebServer server = new MockWebServer(port: 8082);
+    await server.start();
+
+    final String prefix = server.url;
+
+    // put error
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
+    // remove error
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
+    // put error again
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
+
+    var error;
+
+    fetch() async {
+      var s = fetchTypicals(client, prefix).listen((event) {
+        expect(event, equals(generate([TYPICAL_DATA1])));
+      });
+
+      try {
+        await s.asFuture();
+        s.cancel();
+      } catch(e) {
+        assert(true, e is JsonFetcherException);
+        error = (e as JsonFetcherException).error;
+      }
+    }
+
+    error = null;
+    await fetch();
+    if(error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
+
+    error = null;
+    await fetch();
+    if(error != null) fail('Exception should\'t be thrown because of FormatException in the cached data');
+
+    error = null;
+    await fetch();
+    if(error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
+
+    // emulate 404
+    server.enqueue(httpCode: 404);
+    error = false;
+    await fetch();
+    if(error is! HttpException) fail('Exception should be thrown because of HttpException');
   });
 }
