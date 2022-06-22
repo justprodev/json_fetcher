@@ -10,7 +10,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:json_fetcher/loggable_http_client.dart';
-import 'package:json_fetcher/src/auth_info.dart';
 import 'package:logging/logging.dart';
 import 'package:mock_web_server/mock_web_server.dart';
 

@@ -88,6 +88,7 @@ class JsonHttpClient {
             } else {
               // logout
               await auth!.onExpire.call(true);
+              throw HttpException('401', uri: response.request?.url);
             }
           } else {
             throw HttpException('', uri: response.request?.url);
