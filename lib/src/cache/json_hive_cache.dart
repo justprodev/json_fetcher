@@ -8,7 +8,6 @@ import 'dart:collection';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../json_cache.dart';
-import '../json_http_client.dart';
 
 const _BOX_NAME = '__hive_json_hive_cache';
 
@@ -96,6 +95,12 @@ class JsonHiveCache implements JsonCache {
     return value;
   }
 
-  Future<void> evict(key) => _cache.delete(key);
-  Future<void> emptyCache() => _cache.clear();
+  Future<void> evict(key) async {
+    if(!_isInit) await _init();
+    _cache.delete(key);
+  }
+  Future<void> emptyCache() async {
+    if(!_isInit) await _init();
+    _cache.clear();
+  }
 }
