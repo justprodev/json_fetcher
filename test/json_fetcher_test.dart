@@ -288,6 +288,43 @@ void main() {
     await server.shutdown();
   });
 
+  test('patch',() async {
+    final JsonHttpClient client = createClient();
+    final MockWebServer server = new MockWebServer(port: 8082);
+    await server.start();
+    final String prefix = server.url;
+
+    // The response queue is First In First Out
+    // 1 not cached
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
+
+    String postData = json.encode({'command': 'get_list'});
+
+    var parsed = json.decode((await client.patch(prefix+GET_TYPICALS_METHOD, postData)).body);
+    List<Typical> r = parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
+
+    expect(r, equals(generate([TYPICAL_DATA1])));
+    expect(server.takeRequest().body, postData);
+
+    // emulate refreshToken
+    server.enqueue(httpCode: 401);
+    // 1 cached + 1 cached
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
+
+    parsed = json.decode((await client.patch(prefix+GET_TYPICALS_METHOD, postData)).body);
+    r = parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
+
+    // return two cached arrays because of resubmit
+    expect(r, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));
+
+    // 401 response rerquested with authHeaders1
+    expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
+    // headers after 'refreshToken' contains authHeaders2
+    expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
+
+    await server.shutdown();
+  });
+
   test('errors', () async {
     final JsonHttpClient client = createClient();
     final MockWebServer server = new MockWebServer(port: 8082);

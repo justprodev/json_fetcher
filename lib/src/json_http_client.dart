@@ -9,11 +9,11 @@ import 'package:http/http.dart' as http;
 
 import 'auth_info.dart';
 import 'cache/json_hive_cache.dart';
-import 'json_fetcher_exception.dart';
 import 'json_cache.dart';
+import 'json_fetcher_exception.dart';
 import 'json_http_fetcher.dart';
 
-enum _HttpAction { get, post, put, delete }
+enum _HttpAction { get, post, put, delete, patch }
 
 /// Client especially for fetching json from host(s)
 /// [cache] can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
@@ -46,6 +46,10 @@ class JsonHttpClient {
     return await _callHttpAction(_HttpAction.delete, url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
   }
 
+  Future<http.Response> patch(String url, String json, {Map<String,String>? headers, skipCheckingExpiration: false}) async {
+    return await _callHttpAction(_HttpAction.patch, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+  }
+
   void logout() => auth?.onExpire.call(true);
 
   JsonCache get cache => _cache;
@@ -69,6 +73,7 @@ class JsonHttpClient {
         case _HttpAction.post: response = await _client.post(Uri.parse(url), body: json, headers: h); break;
         case _HttpAction.put: response = await _client.put(Uri.parse(url), body: json, headers: h); break;
         case _HttpAction.delete: response = await _client.delete(Uri.parse(url), body: json, headers: h); break;
+        case _HttpAction.patch: response = await _client.patch(Uri.parse(url), body: json, headers: h); break;
       }
       return response;
     }
