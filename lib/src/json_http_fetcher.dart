@@ -3,8 +3,8 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'package:json_fetcher/json_fetcher.dart';
 
+import 'package:json_fetcher/json_fetcher.dart';
 import 'package:meta/meta.dart';
 
 ///
@@ -52,7 +52,7 @@ abstract class JsonHttpFetcher<T> {
       });
 
       subscription.onDone(() {
-        // Add errors only when data came from Internet
+        // Add errors only when data came from Internet (latest 'parse')
         // Is important, because cache can be corrupted and we will be break here
         // because of that We adding error to controller only when all data processed
         if(error != null) controller.addError(JsonFetcherException(url, error!.toString(), error!), trace);

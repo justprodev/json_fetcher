@@ -74,6 +74,7 @@ void main() {
         LoggableHttpClient(Client(), Logger((JsonHttpClient).toString())),
         auth: AuthInfo(() => selectedAuthHeaders, (bool) async { selectedAuthHeaders = authHeaders2; return true; })
     );
+    client.cache.emptyCache();
     return client;
   }
 
@@ -319,7 +320,7 @@ void main() {
 
     error = null;
     await fetch();
-    if(error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
+    if(error is! JsonFetcherException || error.error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
 
     error = null;
     await fetch();
@@ -327,12 +328,14 @@ void main() {
 
     error = null;
     await fetch();
-    if(error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
+    if(error is! JsonFetcherException || error.error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
 
     // emulate 404
     server.enqueue(httpCode: 404);
     error = false;
     await fetch();
     if(error is! HttpException) fail('Exception should be thrown because of HttpException');
+
+    await server.shutdown();
   });
 }
