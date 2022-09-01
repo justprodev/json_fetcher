@@ -21,6 +21,6 @@ class JsonFetcherException {
   bool get notReachable {
     if(response!=null) return false;
 
-    return error == IOException || error is ClientException;
+    return error is IOException || error is ClientException;
   }
 }

@@ -1,6 +1,6 @@
 name: json_fetcher
 description: Tools to easily work with JSON services / data over HTTP.
-version: 1.3.2
+version: 1.3.3
 homepage: https://github.com/justprodev/json_fetcher
 
 environment:
