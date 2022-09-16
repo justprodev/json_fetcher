@@ -29,23 +29,19 @@ abstract class JsonHttpFetcher<T> {
           onError: controller.addError, // Avoid Zone error replacement.
           onDone: null);
 
-      Object? error;
-      StackTrace? trace;
+      JsonFetcherException? error;
 
       subscription.onData((String jsonString) async {
         subscription.pause();
 
         // drop error
         error = null;
-        trace = null;
 
         try {
           controller.add(await parse(jsonString));
         } catch (e, t) {
           // to skip the immediately adding an errors to the controller
           error = JsonFetcherException(url, e.toString(), e, trace: t);
-          trace = t;
-          _client.onError?.call(error!, t);
         } finally {
           subscription.resume();
         }
@@ -55,7 +51,9 @@ abstract class JsonHttpFetcher<T> {
         // Add errors only when data came from Internet (latest 'parse')
         // Is important, because cache can be corrupted and we will be break here
         // because of that We adding error to controller only when all data processed
-        if(error != null) controller.addError(JsonFetcherException(url, error!.toString(), error!), trace);
+        if(error != null) {
+          controller.addError(error!, error!.trace);
+        }
         controller.close();
       });
 
