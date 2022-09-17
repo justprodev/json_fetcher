@@ -391,6 +391,7 @@ void main() {
     Object? fDocument;
     int fCalls = 0;
     var error;
+    List<Typical>? document;
 
     drop() {
       error = null;
@@ -421,8 +422,9 @@ void main() {
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
 
     fetch() async {
+      document = generate([TYPICAL_DATA1]);
       var s = fetchTypicals(client, prefix).listen((event) {
-        expect(event, equals(generate([TYPICAL_DATA1])));
+        expect(event, equals(document!));
       });
 
       try {
@@ -446,6 +448,8 @@ void main() {
     if (error != null) fail('Exception should\'t be thrown because of FormatException in the cached data only');
     if (fCalls != 1)
       fail('onFetch(calls: $fCalls) should be called once because of FormatException in the cached data only');
+
+    assert(true, document == fDocument);
 
     drop();
     await fetch();
