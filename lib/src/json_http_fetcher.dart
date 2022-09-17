@@ -30,15 +30,20 @@ abstract class JsonHttpFetcher<T> {
           onDone: null);
 
       JsonFetcherException? error;
+      T? document;
+      int passes = 0;
 
       subscription.onData((String jsonString) async {
         subscription.pause();
 
         // drop error
         error = null;
+        document = null;
 
         try {
-          controller.add(await parse(jsonString));
+          passes++;
+          document = await parse(jsonString);
+          controller.add(document!);
         } catch (e, t) {
           // to skip the immediately adding an errors to the controller
           error = JsonFetcherException(url, e.toString(), e, trace: t);
@@ -53,6 +58,8 @@ abstract class JsonHttpFetcher<T> {
         // because of that We adding error to controller only when all data processed
         if(error != null) {
           controller.addError(error!, error!.trace);
+        } else if(passes>1 && document != null) {
+          _client.onFetched?.call(url, document!);
         }
         controller.close();
       });

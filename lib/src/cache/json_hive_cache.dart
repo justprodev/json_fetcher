@@ -22,7 +22,9 @@ class JsonHiveCache implements JsonCache {
   bool _isInit = false;
   Future<void>? _initializing;
 
-  JsonHiveCache(this._get);
+  final Function(Object error, StackTrace trace)? _onError;
+
+  JsonHiveCache(this._get, this._onError);
 
   Future<void> _init() async {
     if(_initializing==null) {
@@ -58,13 +60,20 @@ class JsonHiveCache implements JsonCache {
 
     void _getValue() async {
       try {
-        if(!_isInit) await _init();
+        if (!_isInit) await _init();
 
         String? cachedString;
 
-        if(!nocache) {
-          cachedString = await _cache.get(url);
-          if(cachedString!=null && !controller.isClosed) {
+        if (!nocache) {
+          try {
+            cachedString = await _cache.get(url);
+          } catch(e, trace) {
+            // probably not fatal error, just skip
+            // but report
+            _onError?.call(e, trace);
+          }
+
+          if (cachedString != null && !controller.isClosed) {
             controller.add(cachedString);
           }
         }
@@ -73,7 +82,7 @@ class JsonHiveCache implements JsonCache {
         final onlineString = await _download(url);
         //print("download $url stop");
         if (!controller.isClosed) {
-          if(onlineString != cachedString) // skip if a data the same
+          if (onlineString != cachedString) // skip if a data the same
             controller.add(onlineString);
         } // online
       } catch (e) {

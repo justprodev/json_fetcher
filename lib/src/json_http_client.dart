@@ -17,18 +17,21 @@ enum _HttpAction { get, post, put, delete, patch }
 
 /// Client especially for fetching json from host(s)
 /// [cache] can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
+/// [onError] to register all errors, include parse errors in a fetchers
+/// [onFetched] will be called when new document came from network and parsed
 class JsonHttpClient {
   final http.Client _client;
   final AuthInfo? auth;
   final Function(Object error, StackTrace trace)? onError;
+  final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
   late JsonCache _cache = JsonHiveCache((url, headers) async {
     final response = await get(url, headers: headers);
     return response.body;
-  });
+  }, onError);
 
-  JsonHttpClient(this._client, {this.auth, this.onError});
+  JsonHttpClient(this._client, {this.auth, this.onError, this.onFetched});
 
   Future<http.Response> post(String url, String json, {Map<String,String>? headers, skipCheckingExpiration: false}) async {
     return await _callHttpAction(_HttpAction.post, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
