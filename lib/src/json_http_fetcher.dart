@@ -13,7 +13,7 @@ import 'package:meta/meta.dart';
 abstract class JsonHttpFetcher<T> {
   final JsonHttpClient _client;
 
-  JsonHttpFetcher(this._client);
+  const JsonHttpFetcher(this._client);
 
   /// implement me: returns object parsed from json
   @protected

@@ -39,7 +39,7 @@ class Typical {
 }
 
 class _TypicalFetcher extends JsonHttpFetcher<List<Typical>> {
-  _TypicalFetcher(JsonHttpClient client) : super(client);
+  const _TypicalFetcher(JsonHttpClient client) : super(client);
 
   /// compute json parsing in separated thread
   @override
