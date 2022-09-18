@@ -22,7 +22,7 @@ enum _HttpAction { get, post, put, delete, patch }
 class JsonHttpClient {
   final http.Client _client;
   final AuthInfo? auth;
-  final Function(Object error, StackTrace trace)? onError;
+  final Function(Object error, StackTrace? trace)? onError;
   final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
