@@ -25,20 +25,19 @@ abstract class JsonHttpFetcher<T> {
     StreamController<T> controller = StreamController();
 
     controller.onListen = () {
-      StreamSubscription<String> subscription = _client.cache.get(url, nocache: nocache).listen(null,
-          onError: controller.addError, // Avoid Zone error replacement.
-          onDone: null);
-
       JsonFetcherException? error;
       T? document;
       int passes = 0;
+
+      StreamSubscription<String> subscription = _client.cache.get(url, nocache: nocache).listen(null,
+          onError: (e,t) => { if(document == null) controller.addError(e,t) }, // Avoid Zone error replacement.
+          onDone: null);
 
       subscription.onData((String jsonString) async {
         subscription.pause();
 
         // drop error
         error = null;
-        document = null;
 
         try {
           passes++;
@@ -57,8 +56,10 @@ abstract class JsonHttpFetcher<T> {
         // Is important, because cache can be corrupted and we will be break here
         // because of that We adding error to controller only when all data processed
         if(error != null) {
-          controller.addError(error!, error!.trace);
+          // throw errors only if we have no any valid document
+          if(document == null) controller.addError(error!, error!.trace);
         } else if(passes>1 && document != null) {
+          // We have document from network
           _client.onFetched?.call(url, document!);
         }
         controller.close();

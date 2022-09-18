@@ -340,17 +340,21 @@ void main() {
 
     final String prefix = server.url;
 
-    // put error
-    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
-    // remove error
-    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
-    // put error again
-    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
-
     var error;
+    List<Typical>? result;
+
+    drop() {
+      error = null;
+      result = null;
+    }
+
+    checkResult() {
+      assert(result!=null, 'Result must be filled');
+    }
 
     fetch() async {
       var s = fetchTypicals(client, prefix).listen((event) {
+        result = event;
         expect(event, equals(generate([TYPICAL_DATA1])));
       });
 
@@ -363,32 +367,70 @@ void main() {
       }
     }
 
-    error = null;
+    drop();
+    // put error
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
     await fetch();
     if (error is! FormatException)
-      fail('Exception should be thrown because of FormatException in the non-cached data');
+      fail('Exception should be thrown because of FormatException in the non-cached data, and we have no valid cached data');
 
-    error = null;
+    drop();
+    // remove error
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
     await fetch();
     if (error != null) fail('Exception should\'t be thrown because of FormatException in the cached data');
+    checkResult();
 
-    error = null;
+    drop();
+    // put error again
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
+    await fetch();
+    if (error != null)
+      fail('Exception should\'t be thrown because we have valid document in cache');
+    checkResult();
+
+    drop();
+    // put error again
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
     await fetch();
     if (error is! FormatException)
       fail('Exception should be thrown because of FormatException in the non-cached data');
+    //checkResult(); // we don't have a valid result because the cached document was overwritten with invalid data
 
     // emulate 404
     server.enqueue(httpCode: 404);
-    error = false;
+    drop();
     await fetch();
-    if (error is! HttpException) fail('Exception should be thrown because of HttpException');
+    if (error is! HttpException) fail('Exception should be thrown because of HttpException and no valid cache');
+    //checkResult(); // we don't have a valid result because the cached document was overwritten with invalid data
+
+    drop();
+    // put valid data
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
+    await fetch();
+    if (error != null) fail('Exception should\'t be thrown because of FormatException in the cached data');
+    checkResult();
+
+    // emulate 404
+    server.enqueue(httpCode: 404);
+    drop();
+    await fetch();
+    if (error !=null) fail('Exception should\'t be thrown because we have valid cache');
+    checkResult();
+
+    // test keeping the cache between network errors, emulate 404
+    server.enqueue(httpCode: 404);
+    drop();
+    await fetch();
+    if (error !=null) fail('Exception should\'t be thrown because we have valid cache');
+    checkResult();
 
     await server.shutdown();
   });
 
   test('on_fetched', () async {
     String? fUrl;
-    Object? fDocument;
+    List<Typical>? fDocument;
     int fCalls = 0;
     var error;
     List<Typical>? document;
@@ -402,7 +444,7 @@ void main() {
 
     done(String url, Object document) {
       fUrl = url;
-      fDocument = document;
+      fDocument = document as List<Typical>;
       fCalls++;
     }
 
@@ -449,7 +491,7 @@ void main() {
     if (fCalls != 1)
       fail('onFetch(calls: $fCalls) should be called once because of FormatException in the cached data only');
 
-    assert(true, document == fDocument);
+    expect(document, fDocument);
 
     drop();
     await fetch();
@@ -459,8 +501,8 @@ void main() {
 
     drop();
     await fetch();
-    if (error is! FormatException)
-      fail('Exception should be thrown because of FormatException in the non-cached data');
+    if (error != null)
+      fail('Exception should\'t be thrown because of FormatException in the non-cached data and we have valid cache');
     if (fCalls > 0)
       fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
 
