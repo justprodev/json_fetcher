@@ -15,32 +15,31 @@ const _BOX_NAME = '__hive_json_hive_cache';
 
 class JsonHiveCache implements JsonCache {
   final Future<String> Function(String url, Map<String, String>? headers) _get;
+  final Function(Object error, StackTrace trace)? _onError;
 
-  late final Map<String, StreamController<String>> _downloads = HashMap();
   late final LazyBox _cache;
 
   bool _isInit = false;
   Future<void>? _initializing;
 
-  final Function(Object error, StackTrace trace)? _onError;
-
   JsonHiveCache(this._get, this._onError);
 
   Future<void> _init() async {
-    if(_initializing==null) {
+    if (_initializing == null) {
       // start initializing process
       Future<void> init() async {
-        if(_isInit) return;  // for any case
+        if (_isInit) return; // for any case
         await Hive.initFlutter();
         try {
           _cache = await Hive.openLazyBox(_BOX_NAME);
-        } catch(e) {
+        } catch (e) {
           await Hive.deleteBoxFromDisk(_BOX_NAME);
           _cache = await Hive.openLazyBox(_BOX_NAME);
         }
         _isInit = true; // complete
         _initializing = null;
       }
+
       _initializing = init();
     }
     await _initializing; // wait the new one or already exists process
@@ -49,14 +48,7 @@ class JsonHiveCache implements JsonCache {
   /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
   @override
   Stream<String> get(String url, {Map<String, String>? headers, nocache: false}) {
-    // ignore: close_sinks, will be closed in other get() call, that initiated this download
-    StreamController<String>? oldController = _downloads[url];
-
-    // prev download started - return it
-    if(oldController!=null && !oldController.isClosed) return oldController.stream;
-
     StreamController<String> controller = StreamController.broadcast();
-    _downloads[url] = controller;
 
     void _getValue() async {
       try {
@@ -67,7 +59,7 @@ class JsonHiveCache implements JsonCache {
         if (!nocache) {
           try {
             cachedString = await _cache.get(url);
-          } catch(e, trace) {
+          } catch (e, trace) {
             // probably not fatal error, just skip
             // but report
             _onError?.call(e, trace);
@@ -86,10 +78,9 @@ class JsonHiveCache implements JsonCache {
             controller.add(onlineString);
         } // online
       } catch (e) {
-        if(!controller.isClosed) controller.addError(e);
+        if (!controller.isClosed) controller.addError(e);
       } finally {
-        if(!controller.isClosed) await controller.close();
-        _downloads.remove(url);
+        if (!controller.isClosed) await controller.close();
       }
     }
 
@@ -105,11 +96,12 @@ class JsonHiveCache implements JsonCache {
   }
 
   Future<void> evict(key) async {
-    if(!_isInit) await _init();
+    if (!_isInit) await _init();
     _cache.delete(key);
   }
+
   Future<void> emptyCache() async {
-    if(!_isInit) await _init();
+    if (!_isInit) await _init();
     _cache.clear();
   }
 }
