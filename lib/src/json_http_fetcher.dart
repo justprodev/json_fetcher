@@ -31,7 +31,8 @@ abstract class JsonHttpFetcher<T> {
       int passes = 0;
 
       StreamSubscription<String> subscription = _client.cache.get(url, nocache: nocache).listen(null,
-          onError: (e,t) => { if(document == null) controller.addError(e,t) }, // Avoid Zone error replacement.
+          // Avoid Zone error replacement.
+          onError: (e, t) => {if (document == null || allowErrorWhenCacheExists) controller.addError(e, t)},
           onDone: null);
 
       subscription.onData((String jsonString) async {
@@ -56,13 +57,13 @@ abstract class JsonHttpFetcher<T> {
         // Add errors only when data came from Internet (latest 'parse')
         // Is important, because cache can be corrupted and we will be break here
         // because of that We adding error to controller only when all data processed
-        if(error != null) {
+        if (error != null) {
           // throw errors only if we have no any valid document
-          if(document == null || allowErrorWhenCacheExists) {
+          if (document == null || allowErrorWhenCacheExists) {
             controller.addError(error!, error!.trace);
             _client.onError?.call(error!, error!.trace!);
           }
-        } else if(passes>1 && document != null) {
+        } else if (passes > 1 && document != null) {
           // We have document from network
           _client.onFetched?.call(url, document!);
         }
@@ -78,7 +79,7 @@ abstract class JsonHttpFetcher<T> {
   }
 
   /// just get without caching
-  Future<T> get(String url, {Map<String,String>? headers}) async {
+  Future<T> get(String url, {Map<String, String>? headers}) async {
     final String jsonString = (await _client.get(url, headers: headers)).body;
     return await parse(jsonString);
   }
