@@ -17,7 +17,7 @@ abstract class JsonHttpFetcher<T> {
 
   /// implement me: returns object parsed from json
   @protected
-  Future<T> parse(String source);
+  FutureOr<T> parse(String source);
 
   /// by default, if cached version is available then errors will not be pushed to stream
   /// [nocache] skip cached version
