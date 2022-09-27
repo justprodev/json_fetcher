@@ -21,7 +21,8 @@ abstract class JsonHttpFetcher<T> {
 
   /// by default, if cached version is available then errors will not be pushed to stream
   /// [nocache] skip cached version
-  Stream<T> fetch(String url, {nocache: false}) {
+  /// [allowErrorWhenCacheExists] throw errors even if cache is exists
+  Stream<T> fetch(String url, {nocache: false, allowErrorWhenCacheExists: false}) {
     StreamController<T> controller = StreamController();
 
     controller.onListen = () {
@@ -57,7 +58,7 @@ abstract class JsonHttpFetcher<T> {
         // because of that We adding error to controller only when all data processed
         if(error != null) {
           // throw errors only if we have no any valid document
-          if(document == null) {
+          if(document == null || allowErrorWhenCacheExists) {
             controller.addError(error!, error!.trace);
             _client.onError?.call(error!, error!.trace!);
           }
