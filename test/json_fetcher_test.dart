@@ -51,8 +51,8 @@ class _TypicalFetcher extends JsonHttpFetcher<List<Typical>> {
   }
 }
 
-Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix) =>
-    _TypicalFetcher(client).fetch(prefix + GET_TYPICALS_METHOD);
+Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix, {allowErrorWhenCacheExists: false}) =>
+    _TypicalFetcher(client).fetch(prefix + GET_TYPICALS_METHOD, allowErrorWhenCacheExists: allowErrorWhenCacheExists);
 
 void main() {
   setUpFakePathProvider();
@@ -352,8 +352,8 @@ void main() {
       assert(result!=null, 'Result must be filled');
     }
 
-    fetch() async {
-      var s = fetchTypicals(client, prefix).listen((event) {
+    fetch({allowErrorWhenCacheExists: false}) async {
+      var s = fetchTypicals(client, prefix, allowErrorWhenCacheExists: allowErrorWhenCacheExists).listen((event) {
         result = event;
         expect(event, equals(generate([TYPICAL_DATA1])));
       });
@@ -401,7 +401,7 @@ void main() {
     server.enqueue(httpCode: 404);
     drop();
     await fetch();
-    if (error is! HttpException) fail('Exception should be thrown because of HttpException and no valid cache');
+    if (error == null) fail('Exception should be thrown because of HttpException and no valid cache');
     //checkResult(); // we don't have a valid result because the cached document was overwritten with invalid data
 
     drop();
@@ -415,14 +415,21 @@ void main() {
     server.enqueue(httpCode: 404);
     drop();
     await fetch();
-    if (error !=null) fail('Exception should\'t be thrown because we have valid cache');
+    if (error != null) fail('Exception should\'t be thrown because we have valid cache');
     checkResult();
 
     // test keeping the cache between network errors, emulate 404
     server.enqueue(httpCode: 404);
     drop();
     await fetch();
-    if (error !=null) fail('Exception should\'t be thrown because we have valid cache');
+    if (error != null) fail('Exception should\'t be thrown because we have valid cache');
+    checkResult();
+
+    // test allowErrorWhenCacheExists, emulate 404
+    server.enqueue(httpCode: 404);
+    drop();
+    await fetch(allowErrorWhenCacheExists: true);
+    if (error == null) fail('Exception should be thrown because we have valid cache but \'allowErrorWhenCacheExists==true`\'');
     checkResult();
 
     await server.shutdown();
