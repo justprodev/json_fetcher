@@ -3,7 +3,6 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -97,11 +96,11 @@ class JsonHiveCache implements JsonCache {
 
   Future<void> evict(key) async {
     if (!_isInit) await _init();
-    _cache.delete(key);
+    await _cache.delete(key);
   }
 
   Future<void> emptyCache() async {
     if (!_isInit) await _init();
-    _cache.clear();
+    await _cache.clear();
   }
 }

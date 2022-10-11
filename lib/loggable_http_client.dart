@@ -108,4 +108,11 @@ class LoggableHttpClientConfig {
     this.hideAuthorization = true,
     this.cutLongBody = true,
   });
+
+  factory LoggableHttpClientConfig.full() => const LoggableHttpClientConfig(
+    logInputBody: true,
+    logOutputBody: true,
+    hideAuthorization: false,
+    cutLongBody: false
+  );
 }

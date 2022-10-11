@@ -69,14 +69,13 @@ void main() {
   JsonHttpClient createClient({Function(String url, Object document)? onFetched}) {
     var selectedAuthHeaders = authHeaders1;
     final JsonHttpClient client = JsonHttpClient(
-      LoggableHttpClient(Client(), Logger((JsonHttpClient).toString())),
-      auth: AuthInfo(() => selectedAuthHeaders, (bool) async {
-        selectedAuthHeaders = authHeaders2;
-        return true;
-      }),
-      onFetched: onFetched,
-      onError: (e,t)=>Logger.root.severe('Error in JsonHttpClient: $e', e, t)
-    );
+        LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: LoggableHttpClientConfig.full()),
+        auth: AuthInfo(() => selectedAuthHeaders, (bool) async {
+          selectedAuthHeaders = authHeaders2;
+          return true;
+        }),
+        onFetched: onFetched,
+        onError: (e, t) => Logger.root.severe('Error in JsonHttpClient: $e', e, t));
     client.cache.emptyCache();
     return client;
   }
@@ -148,6 +147,17 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
+
+    // testing empty Cache
+    await client.cache.emptyCache();
+    server.enqueue(body: '[]');
+    count = 0;
+    s = fetchTypicals(client, prefix).listen((event) {
+      count++;
+    });
+    await s.asFuture();
+    s.cancel();
+    assert(count == 1, 'Cache should be empty');
 
     await server.shutdown();
   });
@@ -349,7 +359,7 @@ void main() {
     }
 
     checkResult() {
-      assert(result!=null, 'Result must be filled');
+      assert(result != null, 'Result must be filled');
     }
 
     fetch({allowErrorWhenCacheExists: false}) async {
@@ -372,7 +382,8 @@ void main() {
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
     await fetch();
     if (error is! FormatException)
-      fail('Exception should be thrown because of FormatException in the non-cached data, and we have no valid cached data');
+      fail(
+          'Exception should be thrown because of FormatException in the non-cached data, and we have no valid cached data');
 
     drop();
     // remove error
@@ -385,16 +396,14 @@ void main() {
     // put error again
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
     await fetch();
-    if (error != null)
-      fail('Exception should\'t be thrown because we have valid document in cache');
+    if (error != null) fail('Exception should\'t be thrown because we have valid document in cache');
     checkResult();
 
     drop();
     // put error again
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}');
     await fetch();
-    if (error is! FormatException)
-      fail('Exception should be thrown because of FormatException in the non-cached data');
+    if (error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
     //checkResult(); // we don't have a valid result because the cached document was overwritten with invalid data
 
     // emulate 404
@@ -429,7 +438,8 @@ void main() {
     server.enqueue(httpCode: 404);
     drop();
     await fetch(allowErrorWhenCacheExists: true);
-    if (error == null) fail('Exception should be thrown because we have valid cache but \'allowErrorWhenCacheExists==true`\'');
+    if (error == null)
+      fail('Exception should be thrown because we have valid cache but \'allowErrorWhenCacheExists==true`\'');
     checkResult();
 
     await server.shutdown();
@@ -487,10 +497,8 @@ void main() {
 
     drop();
     await fetch();
-    if (error is! FormatException)
-      fail('Exception should be thrown because of FormatException in the non-cached data');
-    if (fCalls > 0)
-      fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
+    if (error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
+    if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
 
     drop();
     await fetch();
@@ -503,23 +511,20 @@ void main() {
     drop();
     await fetch();
     if (error != null) fail('Exception should\'t be thrown because of no exceptions');
-    if (fCalls > 0)
-      fail('onFetch(calls: $fCalls) should\'t be called because document has not changed');
+    if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be called because document has not changed');
 
     drop();
     await fetch();
     if (error != null)
       fail('Exception should\'t be thrown because of FormatException in the non-cached data and we have valid cache');
-    if (fCalls > 0)
-      fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
+    if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
 
     // emulate 404
     server.enqueue(httpCode: 404);
     drop();
     await fetch();
     if (error is! HttpException) fail('Exception should be thrown because of HttpException');
-    if (fCalls > 0)
-      fail('onFetch(calls: $fCalls) should\'t be call because  of HttpException');
+    if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because  of HttpException');
 
     await server.shutdown();
   });
