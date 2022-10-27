@@ -40,7 +40,7 @@ class LoggableHttpClient extends BaseClient {
     // Simple request
     if (request is Request) {
       final List<int> bytes = await response.stream.toBytes();
-      if (config.logOutputBody)
+      if (config.logOutputBody || response.statusCode>=400)
         s +=
             "\nbody: ${await _smartCut(response.headers['Content-Type'] ?? response.headers['content-type'], utf8.decode(bytes))}";
       _logger.info(s);
