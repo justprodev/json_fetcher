@@ -4,8 +4,9 @@
 
 /// Used when [JsonHttpClient] operates with services which are needs authentication
 class AuthInfo {
-  /// provide permanent headers across [JsonHttpClient]
-  final Map<String,String>? Function() headers;
+  /// provide headers across [JsonHttpClient]
+  /// [url] url of the request that requests headers
+  final Map<String,String>? Function(String url) headers;
   /// Will be called for 401 error ([authHeaders] will be removed from the header immediately),
   /// `isRepeat`==true means that handler was called  at second, because a new auth data is wrong (refreshToken can't succeeded or etc),
   ///  and We probably should redirect to login page

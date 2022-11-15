@@ -30,7 +30,7 @@ void main() {
     var selectedAuthHeaders = authHeaders1;
     final JsonHttpClient client =
         JsonHttpClient(LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: config),
-            auth: AuthInfo(() => selectedAuthHeaders, (bool) async {
+            auth: AuthInfo((_) => selectedAuthHeaders, (bool) async {
               selectedAuthHeaders = authHeaders2;
               return true;
             }));

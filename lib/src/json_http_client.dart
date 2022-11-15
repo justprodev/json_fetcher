@@ -66,7 +66,7 @@ class JsonHttpClient {
 
     Future<http.Response> makeRequest() async {
       final Map<String, String> h = {"Content-Type": "application/json"};
-      final authHeaders = auth?.headers();
+      final authHeaders = auth?.headers(url);
       if(authHeaders!=null) h.addAll(authHeaders);
       if(headers!=null) h.addAll(headers);
 
