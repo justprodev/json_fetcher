@@ -22,7 +22,7 @@ abstract class JsonHttpFetcher<T> {
   /// by default, if cached version is available then errors will not be pushed to stream
   /// [nocache] skip cached version
   /// [allowErrorWhenCacheExists] throw errors even if cache is exists
-  Stream<T> fetch(String url, {nocache: false, allowErrorWhenCacheExists: false}) {
+  Stream<T> fetch(String url, {nocache = false, allowErrorWhenCacheExists = false, Map<String, String>? headers}) {
     StreamController<T> controller = StreamController();
 
     controller.onListen = () {
@@ -30,7 +30,7 @@ abstract class JsonHttpFetcher<T> {
       T? document;
       int passes = 0;
 
-      StreamSubscription<String> subscription = _client.cache.get(url, nocache: nocache).listen(null,
+      StreamSubscription<String> subscription = _client.cache.get(url, nocache: nocache, headers: headers).listen(null,
           // Avoid Zone error replacement.
           onError: (e, t) => {if (document == null || allowErrorWhenCacheExists) controller.addError(e, t)},
           onDone: null);

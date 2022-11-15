@@ -70,7 +70,7 @@ class JsonHiveCache implements JsonCache {
         }
 
         //print("download $url start");
-        final onlineString = await _download(url);
+        final onlineString = await _download(url, headers: headers);
         //print("download $url stop");
         if (!controller.isClosed) {
           if (onlineString != cachedString) // skip if a data the same
