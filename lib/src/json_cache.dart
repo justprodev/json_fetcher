@@ -7,9 +7,9 @@
 abstract class JsonCache {
   /// get file.
   /// probably stream will be closed after receiving file from the network
-  Stream<String> get(String url, {Map<String, String>? headers, nocache: false});
+  Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false});
   /// force remove file from the cache
-  Future<void> evict(key);
+  Future<void> evict(String url);
   /// empty the cache entirely
   Future<void> emptyCache();
 }

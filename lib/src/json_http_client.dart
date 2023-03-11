@@ -26,7 +26,7 @@ class JsonHttpClient {
   final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
-  late JsonCache _cache = JsonHiveCache((url, headers) async {
+  late final JsonCache _cache = JsonHiveCache((url, headers) async {
     final response = await get(url, headers: headers);
     return response.body;
   }, onError);

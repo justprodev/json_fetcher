@@ -8,7 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../json_cache.dart';
 
-const _BOX_NAME = '__hive_json_hive_cache';
+const _boxName = '__hive_json_hive_cache';
 
 // todo: move get outside, because is useful for any cache
 
@@ -30,10 +30,10 @@ class JsonHiveCache implements JsonCache {
         if (_isInit) return; // for any case
         await Hive.initFlutter();
         try {
-          _cache = await Hive.openLazyBox(_BOX_NAME);
+          _cache = await Hive.openLazyBox(_boxName);
         } catch (e) {
-          await Hive.deleteBoxFromDisk(_BOX_NAME);
-          _cache = await Hive.openLazyBox(_BOX_NAME);
+          await Hive.deleteBoxFromDisk(_boxName);
+          _cache = await Hive.openLazyBox(_boxName);
         }
         _isInit = true; // complete
         _initializing = null;
@@ -46,10 +46,10 @@ class JsonHiveCache implements JsonCache {
 
   /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
   @override
-  Stream<String> get(String url, {Map<String, String>? headers, nocache: false}) {
+  Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false}) {
     StreamController<String> controller = StreamController.broadcast();
 
-    void _getValue() async {
+    void getValue() async {
       try {
         if (!_isInit) await _init();
 
@@ -57,7 +57,7 @@ class JsonHiveCache implements JsonCache {
 
         if (!nocache) {
           try {
-            cachedString = await _cache.get(url);
+            cachedString = await _cache.get(_createKey(url));
           } catch (e, trace) {
             // probably not fatal error, just skip
             // but report
@@ -73,8 +73,9 @@ class JsonHiveCache implements JsonCache {
         final onlineString = await _download(url, headers: headers);
         //print("download $url stop");
         if (!controller.isClosed) {
-          if (onlineString != cachedString) // skip if a data the same
+          if (onlineString != cachedString) {
             controller.add(onlineString);
+          }
         } // online
       } catch (e) {
         if (!controller.isClosed) controller.addError(e);
@@ -83,24 +84,44 @@ class JsonHiveCache implements JsonCache {
       }
     }
 
-    _getValue();
+    getValue();
 
     return controller.stream;
   }
 
   Future<String> _download(String url, {Map<String, String>? headers}) async {
     final String value = await _get(url, headers);
-    await _cache.put(url, value);
+    await _cache.put(_createKey(url), value);
     return value;
   }
 
-  Future<void> evict(key) async {
+  @override
+  Future<void> evict(String url) async {
     if (!_isInit) await _init();
-    await _cache.delete(key);
+    await _cache.delete(_createKey(url));
   }
 
+  @override
   Future<void> emptyCache() async {
     if (!_isInit) await _init();
     await _cache.clear();
   }
+
+  String _createKey(String url) => _fastHash(url);
+}
+
+/// FNV-1a 64bit hash algorithm optimized for Dart Strings
+String _fastHash(String string) {
+  var hash = 0xcbf29ce484222325;
+
+  var i = 0;
+  while (i < string.length) {
+    final codeUnit = string.codeUnitAt(i++);
+    hash ^= codeUnit >> 8;
+    hash *= 0x100000001b3;
+    hash ^= codeUnit & 0xFF;
+    hash *= 0x100000001b3;
+  }
+
+  return hash.toString();
 }
