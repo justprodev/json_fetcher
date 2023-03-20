@@ -159,6 +159,25 @@ void main() {
     s.cancel();
     assert(count == 1, 'Cache should be empty');
 
+    // testing different url used for storing caching
+    await client.cache.emptyCache();
+    count = 0;
+    final refreshUrl = '$prefix$GET_TYPICALS_METHOD?refresh=true';
+    final cacheUrl = prefix + GET_TYPICALS_METHOD;
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
+    s = _TypicalFetcher(client).fetch(refreshUrl, cacheUrl: cacheUrl).listen((event) {
+      count++;
+    });
+    await s.asFuture();
+    s.cancel();
+    server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
+    s = _TypicalFetcher(client).fetch(cacheUrl).listen((event) {
+      count++;
+    });
+    await s.asFuture();
+    s.cancel();
+    assert(count == 3, '(count=$count) Content from $refreshUrl is not cached using $cacheUrl as cache key');
+
     await server.shutdown();
   });
 

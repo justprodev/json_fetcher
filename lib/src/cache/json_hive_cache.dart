@@ -46,7 +46,7 @@ class JsonHiveCache implements JsonCache {
 
   /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
   @override
-  Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false}) {
+  Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false, String? cacheUrl}) {
     StreamController<String> controller = StreamController.broadcast();
 
     void getValue() async {
@@ -57,7 +57,7 @@ class JsonHiveCache implements JsonCache {
 
         if (!nocache) {
           try {
-            cachedString = await _cache.get(_createKey(url));
+            cachedString = await _cache.get(_createKey(cacheUrl ?? url));
           } catch (e, trace) {
             // probably not fatal error, just skip
             // but report
@@ -70,7 +70,7 @@ class JsonHiveCache implements JsonCache {
         }
 
         //print("download $url start");
-        final onlineString = await _download(url, headers: headers);
+        final onlineString = await _download(url, headers: headers, cacheUrl: cacheUrl);
         //print("download $url stop");
         if (!controller.isClosed) {
           if (onlineString != cachedString) {
@@ -89,9 +89,9 @@ class JsonHiveCache implements JsonCache {
     return controller.stream;
   }
 
-  Future<String> _download(String url, {Map<String, String>? headers}) async {
+  Future<String> _download(String url, {Map<String, String>? headers, String? cacheUrl}) async {
     final String value = await _get(url, headers);
-    await _cache.put(_createKey(url), value);
+    await _cache.put(_createKey(cacheUrl ?? url), value);
     return value;
   }
 
