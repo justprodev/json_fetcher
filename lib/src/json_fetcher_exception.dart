@@ -11,8 +11,9 @@ class JsonFetcherException {
   final String url;
   final StackTrace? trace;
 
-  JsonFetcherException(this.url, this.message, this.error, {this.response, this.trace});
+  const JsonFetcherException(this.url, this.message, this.error, {this.response, this.trace});
 
+  @override
   String toString() => '$url: $message (${response?.statusCode??''} ${response?.reasonPhrase??''} $error)';
 
   int? get statusCode => response?.statusCode;

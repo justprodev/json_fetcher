@@ -104,7 +104,7 @@ class JsonHttpClient {
         }
         return response;
       } catch(e, trace) {
-        String message = 'Error while ${actionType.name} $url ${json!=null?'($json)':''}';
+        String message = 'Error while ${actionType.name} $url';
         if(response!=null) message += ': code=${response.statusCode} body=${response.body}';
         final error = JsonFetcherException(url, message, e, response: response, trace: trace);
         onError?.call(error, trace);
