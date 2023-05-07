@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../json_cache.dart';
+import '../util/fnv1a_hash/fnv1a_hash.dart';
 
 const _boxName = '__hive_json_hive_cache';
 
@@ -107,21 +108,5 @@ class JsonHiveCache implements JsonCache {
     await _cache.clear();
   }
 
-  String _createKey(String url) => _fastHash(url);
-}
-
-/// FNV-1a 64bit hash algorithm optimized for Dart Strings
-String _fastHash(String string) {
-  var hash = 0xcbf29ce484222325;
-
-  var i = 0;
-  while (i < string.length) {
-    final codeUnit = string.codeUnitAt(i++);
-    hash ^= codeUnit >> 8;
-    hash *= 0x100000001b3;
-    hash ^= codeUnit & 0xFF;
-    hash *= 0x100000001b3;
-  }
-
-  return hash.toString();
+  String _createKey(String url) => fastHash(url);
 }
