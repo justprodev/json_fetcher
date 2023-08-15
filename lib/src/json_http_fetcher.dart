@@ -66,7 +66,7 @@ abstract class JsonHttpFetcher<T> {
         // because of that We adding error to controller only when all data processed
         if (error != null) {
           // throw errors only if we have no any valid document
-          if (document == null && allowErrorWhenCacheExists) {
+          if (document == null || allowErrorWhenCacheExists) {
             controller.addError(error!, error!.trace);
             _client.onError?.call(error!, error!.trace!);
           }
