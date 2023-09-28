@@ -1,6 +1,6 @@
 name: json_fetcher
 description: Tools to easily work with JSON services / data over HTTP.
-version: 1.4.12
+version: 1.4.13
 homepage: https://github.com/justprodev/json_fetcher
 
 environment:
@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  http: ^0.13.5
+  http: ^1.1.0
   hive_flutter: ^1.1.0
 
   logging:
