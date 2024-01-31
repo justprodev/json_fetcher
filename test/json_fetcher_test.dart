@@ -188,7 +188,6 @@ void main() {
     final String prefix = server.url;
 
     // The response queue is First In First Out
-    // 1 not cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
 
     List<Typical> r = await _TypicalFetcher(client).get(prefix + GET_TYPICALS_METHOD);
@@ -198,12 +197,10 @@ void main() {
 
     // emulate refreshToken
     server.enqueue(httpCode: 401);
-    // 1 cached + 1 cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
 
     r = await _TypicalFetcher(client).get(prefix + GET_TYPICALS_METHOD);
 
-    // return two cached arrays because of resubmit
     expect(r, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));
 
     // 401 response rerquested with authHeaders1
@@ -221,7 +218,6 @@ void main() {
     final String prefix = server.url;
 
     // The response queue is First In First Out
-    // 1 not cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
 
     String postData = json.encode({'command': 'get_list'});
@@ -234,13 +230,11 @@ void main() {
 
     // emulate refreshToken
     server.enqueue(httpCode: 401);
-    // 1 cached + 1 cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
 
     parsed = json.decode((await client.post(prefix + GET_TYPICALS_METHOD, postData)).body);
     r = parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
 
-    // return two cached arrays because of resubmit
     expect(r, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));
 
     // 401 response rerquested with authHeaders1
@@ -258,7 +252,6 @@ void main() {
     final String prefix = server.url;
 
     // The response queue is First In First Out
-    // 1 not cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
 
     String postData = json.encode({'command': 'get_list'});
@@ -277,7 +270,6 @@ void main() {
     parsed = json.decode((await client.put(prefix + GET_TYPICALS_METHOD, postData)).body);
     r = parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
 
-    // return two cached arrays because of resubmit
     expect(r, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));
 
     // 401 response rerquested with authHeaders1
@@ -295,7 +287,6 @@ void main() {
     final String prefix = server.url;
 
     // The response queue is First In First Out
-    // 1 not cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
 
     String postData = json.encode({'command': 'get_list'});
@@ -308,13 +299,11 @@ void main() {
 
     // emulate refreshToken
     server.enqueue(httpCode: 401);
-    // 1 cached + 1 cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
 
     parsed = json.decode((await client.put(prefix + GET_TYPICALS_METHOD, postData)).body);
     r = parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
 
-    // return two cached arrays because of resubmit
     expect(r, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));
 
     // 401 response rerquested with authHeaders1
@@ -332,7 +321,6 @@ void main() {
     final String prefix = server.url;
 
     // The response queue is First In First Out
-    // 1 not cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}]');
 
     String postData = json.encode({'command': 'get_list'});
@@ -345,13 +333,11 @@ void main() {
 
     // emulate refreshToken
     server.enqueue(httpCode: 401);
-    // 1 cached + 1 cached
     server.enqueue(body: '[{ "data": "$TYPICAL_DATA1"}, { "data": "$TYPICAL_DATA2"}]');
 
     parsed = json.decode((await client.patch(prefix + GET_TYPICALS_METHOD, postData)).body);
     r = parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
 
-    // return two cached arrays because of resubmit
     expect(r, equals(generate([TYPICAL_DATA1, TYPICAL_DATA2])));
 
     // 401 response rerquested with authHeaders1
@@ -465,7 +451,6 @@ void main() {
   });
 
   test('on_fetched', () async {
-    String? fUrl;
     List<Typical>? fDocument;
     int fCalls = 0;
     var error;
@@ -473,13 +458,11 @@ void main() {
 
     drop() {
       error = null;
-      fUrl = null;
       fDocument = null;
       fCalls = 0;
     }
 
     done(String url, Object document) {
-      fUrl = url;
       fDocument = document as List<Typical>;
       fCalls++;
     }
