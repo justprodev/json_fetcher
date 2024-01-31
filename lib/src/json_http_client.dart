@@ -6,14 +6,13 @@ import 'dart:async';
 import 'dart:io' show HttpHeaders, HttpException;
 
 import 'package:http/http.dart' as http;
+import 'package:json_fetcher/src/util/http.dart';
 
 import 'auth_info.dart';
 import 'cache/json_hive_cache.dart';
 import 'json_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_fetcher.dart';
-
-enum _HttpAction { get, post, put, delete, patch }
 
 /// Client especially for fetching json from host(s)
 /// [cache] can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
@@ -34,27 +33,31 @@ class JsonHttpClient {
   JsonHttpClient(this._client, {this.auth, this.onError, this.onFetched});
 
   Future<http.Response> post(String url, String json, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send(_HttpAction.post, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+      _send('POST', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   Future<http.Response> put(String url, String json, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send(_HttpAction.put, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+      _send('PUT', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   Future<http.Response> get(String url, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send(_HttpAction.get, url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+      _send('GET', url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   Future<http.Response> delete(String url, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send(_HttpAction.delete, url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+      _send('DELETE', url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   Future<http.Response> patch(String url, String json,
           {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send(_HttpAction.patch, url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+      _send('PATCH', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   void logout() => auth?.onExpire.call(true);
 
   JsonCache get cache => _cache;
 
+  /// So, basically is just wrapper over [BaseClientExt.sendUnstreamed] which:
+  ///
+  /// 1. handles auth
+  /// 3. handles errors
   Future<http.Response> _send(
-    _HttpAction actionType,
+    String method,
     String url,
     String? json, {
     Map<String, String>? headers,
@@ -68,25 +71,7 @@ class JsonHttpClient {
       if (authHeaders != null) h.addAll(authHeaders);
       if (headers != null) h.addAll(headers);
 
-      final http.Response response;
-      switch (actionType) {
-        case _HttpAction.get:
-          response = await _client.get(Uri.parse(url), headers: h);
-          break;
-        case _HttpAction.post:
-          response = await _client.post(Uri.parse(url), body: json, headers: h);
-          break;
-        case _HttpAction.put:
-          response = await _client.put(Uri.parse(url), body: json, headers: h);
-          break;
-        case _HttpAction.delete:
-          response = await _client.delete(Uri.parse(url), body: json, headers: h);
-          break;
-        case _HttpAction.patch:
-          response = await _client.patch(Uri.parse(url), body: json, headers: h);
-          break;
-      }
-      return response;
+      return _client.sendUnstreamed(method, Uri.parse(url), h, json);
     }
 
     action = () async {
@@ -114,7 +99,7 @@ class JsonHttpClient {
         }
         return response;
       } catch (e, trace) {
-        String message = 'Error while ${actionType.name} $url';
+        String message = 'Error while $method $url';
         if (response != null) message += ': code=${response.statusCode} body=${response.body}';
         final error = JsonFetcherException(url, message, e, response: response, trace: trace);
         onError?.call(error, trace);
