@@ -38,8 +38,8 @@ class JsonHttpClient {
   Future<http.Response> put(String url, String json, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
       _send('PUT', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
-  Future<http.Response> get(String url, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send('GET', url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
+  Future<http.Response> get(String url, {String? json, Map<String, String>? headers, skipCheckingExpiration = false}) =>
+      _send('GET', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   Future<http.Response> delete(String url, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
       _send('DELETE', url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
