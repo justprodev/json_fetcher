@@ -51,9 +51,12 @@ class JsonHttpClient {
       _send('PATCH', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
   /// upload files using POST method
+  ///
+  /// [fields] - additional fields for multipart request
   Future<http.Response> postUpload(String url, List<http.MultipartFile> files,
-          {Map<String, String>? headers, skipCheckingExpiration = false}) =>
-      _send('POST', url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration, files: files);
+          {Map<String, String>? headers, skipCheckingExpiration = false, Map<String, String>? fields}) =>
+      _send('POST', url, null,
+          headers: headers, skipCheckingExpiration: skipCheckingExpiration, files: files, fields: fields);
 
   void logout() => auth?.onExpire.call(true);
 
@@ -70,13 +73,16 @@ class JsonHttpClient {
     String? json, {
     Map<String, String>? headers,
     skipCheckingExpiration = false,
+    // MultipartRequest
     List<http.MultipartFile>? files,
+    Map<String, String>? fields,
   }) async {
     late Future<http.Response> Function() action;
 
     Future<http.Response> makeRequest() async {
       if (files != null) {
         final request = http.MultipartRequest(method, Uri.parse(url));
+        if (fields != null) request.fields.addAll(fields);
         request.headers.addAll(headers ?? {});
         request.files.addAll(files);
         final authHeaders = auth?.headers(url);
