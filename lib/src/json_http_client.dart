@@ -15,13 +15,15 @@ import 'json_fetcher_exception.dart';
 import 'json_http_fetcher.dart';
 
 /// Client especially for fetching json from host(s)
-/// [cache] can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
-/// [onError] to register all errors, include parse errors in a fetchers
-/// [onFetched] will be called when new document came from network and parsed
 class JsonHttpClient {
+  /// delegated [http.Client] which will be used for all requests
   final http.Client _client;
   final AuthInfo? auth;
+
+  // register all errors, include parse errors in a fetchers
   final Function(Object error, StackTrace? trace)? onError;
+
+  /// called when new document came from network and parsed
   final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
@@ -48,8 +50,14 @@ class JsonHttpClient {
           {Map<String, String>? headers, skipCheckingExpiration = false}) =>
       _send('PATCH', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
 
+  /// upload files using POST method
+  Future<http.Response> postUpload(String url, List<http.MultipartFile> files,
+          {Map<String, String>? headers, skipCheckingExpiration = false}) =>
+      _send('POST', url, null, headers: headers, skipCheckingExpiration: skipCheckingExpiration, files: files);
+
   void logout() => auth?.onExpire.call(true);
 
+  /// can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
   JsonCache get cache => _cache;
 
   /// So, basically is just wrapper over [BaseClientExt.sendUnstreamed] which:
@@ -62,16 +70,25 @@ class JsonHttpClient {
     String? json, {
     Map<String, String>? headers,
     skipCheckingExpiration = false,
+    List<http.MultipartFile>? files,
   }) async {
     late Future<http.Response> Function() action;
 
     Future<http.Response> makeRequest() async {
-      final Map<String, String> h = {"Content-Type": "application/json"};
-      final authHeaders = auth?.headers(url);
-      if (authHeaders != null) h.addAll(authHeaders);
-      if (headers != null) h.addAll(headers);
-
-      return _client.sendUnstreamed(method, Uri.parse(url), h, json);
+      if (files != null) {
+        final request = http.MultipartRequest(method, Uri.parse(url));
+        request.headers.addAll(headers ?? {});
+        request.files.addAll(files);
+        final authHeaders = auth?.headers(url);
+        if (authHeaders != null) request.headers.addAll(authHeaders);
+        return await _client.send(request).then(http.Response.fromStream);
+      } else {
+        final Map<String, String> h = {"Content-Type": "application/json"};
+        final authHeaders = auth?.headers(url);
+        if (authHeaders != null) h.addAll(authHeaders);
+        if (headers != null) h.addAll(headers);
+        return _client.sendUnstreamed(method, Uri.parse(url), h, json);
+      }
     }
 
     action = () async {
@@ -106,6 +123,8 @@ class JsonHttpClient {
         throw error;
       }
     };
+
+    assert(json == null || files == null, 'You can send either json or files, but not both');
 
     return await action();
   }

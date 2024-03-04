@@ -38,7 +38,7 @@ class LoggableHttpClient extends BaseClient {
     s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(response.headers) : response.headers}";
 
     // Simple request
-    if (request is Request) {
+    if (request is Request || request is MultipartRequest) {
       final List<int> bytes = await response.stream.toBytes();
       if (config.logOutputBody || response.statusCode>=400)
         s +=
