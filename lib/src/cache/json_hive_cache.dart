@@ -45,7 +45,6 @@ class JsonHiveCache implements JsonCache {
     await _initializing; // wait the new one or already exists process
   }
 
-  /// [nocache] skips cache before getting the file - i.e.get from Internet then cache it
   @override
   Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false, String? cacheUrl}) {
     StreamController<String> controller = StreamController.broadcast();
@@ -58,7 +57,7 @@ class JsonHiveCache implements JsonCache {
 
         if (!nocache) {
           try {
-            cachedString = await _cache.get(_createKey(cacheUrl ?? url));
+            cachedString = await _cache.get(createKey(cacheUrl ?? url));
           } catch (e, trace) {
             // probably not fatal error, just skip
             // but report
@@ -90,16 +89,10 @@ class JsonHiveCache implements JsonCache {
     return controller.stream;
   }
 
-  Future<String> _download(String url, {Map<String, String>? headers, String? cacheUrl}) async {
-    final String value = await _get(url, headers);
-    await _cache.put(_createKey(cacheUrl ?? url), value);
-    return value;
-  }
-
   @override
   Future<void> evict(String url) async {
     if (!_isInit) await _init();
-    await _cache.delete(_createKey(url));
+    await _cache.delete(createKey(url));
   }
 
   @override
@@ -108,5 +101,24 @@ class JsonHiveCache implements JsonCache {
     await _cache.clear();
   }
 
-  String _createKey(String url) => fastHash(url);
+  @override
+  Future<String> peek(String key) async {
+    if (!_isInit) await _init();
+    return await _cache.get(key);
+  }
+
+  @override
+  Future<void> put(String key, String json) async {
+    if (!_isInit) await _init();
+    await _cache.put(key, json);
+  }
+
+  @override
+  String createKey(String data) => fastHash(data);
+
+  Future<String> _download(String url, {Map<String, String>? headers, String? cacheUrl}) async {
+    final String value = await _get(url, headers);
+    await _cache.put(createKey(cacheUrl ?? url), value);
+    return value;
+  }
 }
