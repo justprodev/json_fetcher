@@ -29,60 +29,44 @@ abstract class JsonHttpFetcher<T> {
     allowErrorWhenCacheExists = false,
     Map<String, String>? headers,
     String? cacheUrl,
-  }) {
-    StreamController<T> controller = StreamController();
+  }) async* {
+    JsonFetcherException? error;
+    final key = _client.cache.createKey(cacheUrl ?? url);
+    final cachedString = await _client.cache.peek(key);
+    T? cachedDocument;
 
-    controller.onListen = () {
-      JsonFetcherException? error;
-      T? document;
-      int passes = 0;
+    if (cachedString != null && !nocache) {
+      try {
+        cachedDocument = await parse(cachedString);
+        yield cachedDocument!;
+      } catch (e, t) {
+        error = JsonFetcherException(url, e.toString(), e, trace: t);
+      }
+    }
 
-      final subscription = _client.cache.get(url, nocache: nocache, headers: headers, cacheUrl: cacheUrl).listen(null,
-          // Avoid Zone error replacement.
-          onError: (e, t) => {if (document == null || allowErrorWhenCacheExists) controller.addError(e, t)},
-          onDone: null);
+    try {
+      final onlineString = (await _client.get(url, headers: headers)).body;
+      await _client.cache.put(key, onlineString);
 
-      subscription.onData((String jsonString) async {
-        subscription.pause();
-
-        // drop error
+      if (cachedString != onlineString) {
+        final document = await parse(onlineString);
+        // drop error because we have valid document
         error = null;
+        yield document;
+        _client.onFetched?.call(url, document!);
+      }
+    } catch (e, t) {
+      error = JsonFetcherException(url, e.toString(), e, trace: t);
+    }
 
-        try {
-          passes++;
-          document = await parse(jsonString);
-          controller.add(document!);
-        } catch (e, t) {
-          // to skip the immediately adding an errors to the controller
-          error = JsonFetcherException(url, e.toString(), e, trace: t);
-        } finally {
-          subscription.resume();
-        }
-      });
-
-      subscription.onDone(() {
-        // Add errors only when data came from Internet (latest 'parse')
-        // Is important, because cache can be corrupted and we will be break here
-        // because of that We adding error to controller only when all data processed
-        if (error != null) {
-          // throw errors only if we have no any valid document
-          if (document == null || allowErrorWhenCacheExists) {
-            controller.addError(error!, error!.trace);
-            _client.onError?.call(error!, error!.trace!);
-          }
-        } else if (passes > 1 && document != null) {
-          // We have document from network
-          _client.onFetched?.call(url, document!);
-        }
-        controller.close();
-      });
-
-      controller
-        ..onCancel = subscription.cancel
-        ..onPause = subscription.pause
-        ..onResume = subscription.resume;
-    };
-    return controller.stream;
+    if (error != null) {
+      // throw errors only if we have no valid document from cache
+      // or we have to throw errors even if cache is exists
+      if (cachedDocument == null || allowErrorWhenCacheExists) {
+        _client.onError?.call(error, error.trace);
+        yield* Stream.error(error);
+      }
+    }
   }
 
   /// just get without caching

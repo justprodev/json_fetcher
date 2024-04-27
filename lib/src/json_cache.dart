@@ -15,6 +15,7 @@ abstract class JsonCache implements BaseCache {
   /// [url] - the url to fetch, will be used to create the cache key
   /// if [cacheUrl] is specified, it will be used for the cache key instead of [url]
   ///
+  @Deprecated("Use JsonHttpFetcher.fetch, or implement an logic by yourself. Will be removed in 2.0.0")
   Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false, String? cacheUrl});
 
   /// create cache key

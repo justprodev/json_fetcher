@@ -53,36 +53,46 @@ class _TypicalFetcher extends JsonHttpFetcher<List<Typical>> {
 Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String prefix, {allowErrorWhenCacheExists = false}) =>
     _TypicalFetcher(client).fetch(prefix + getTypicalsMethod, allowErrorWhenCacheExists: allowErrorWhenCacheExists);
 
+const authHeaders1 = {'authorization': 'Bearer 12345'};
+const authHeaders2 = {'authorization': 'Bearer 67890'};
+
+Future<JsonHttpClient> createClient({Function(String url, Object document)? onFetched}) async {
+  var selectedAuthHeaders = authHeaders1;
+  final JsonHttpClient client = JsonHttpClient(
+      LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: LoggableHttpClientConfig.full()),
+      auth: AuthInfo((_) => selectedAuthHeaders, (_) async {
+        selectedAuthHeaders = authHeaders2;
+        return true;
+      }),
+      onFetched: onFetched,
+      onError: (e, t) => Logger.root.severe('Error in JsonHttpClient: $e', e, t));
+  await client.cache.emptyCache();
+  return client;
+}
+
+late MockWebServer server;
+
+String get prefix => server.url;
+
 void main() {
   setUpFakePathProvider();
 
-  final Map<String, String> authHeaders1 = {'authorization': 'Bearer 12345'};
-  final Map<String, String> authHeaders2 = {'authorization': 'Bearer 67890'};
-
   List<Typical> generate(List<String> data) => <Typical>[...data.map((e) => Typical()..data = e)];
 
-  Logger.root.onRecord.listen((record) => debugPrint(record.message));
+  // enable logging HTTP requests
+  // Logger.root.onRecord.listen((record) => debugPrint(record.message));
 
-  JsonHttpClient createClient({Function(String url, Object document)? onFetched}) {
-    var selectedAuthHeaders = authHeaders1;
-    final JsonHttpClient client = JsonHttpClient(
-        LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: LoggableHttpClientConfig.full()),
-        auth: AuthInfo((_) => selectedAuthHeaders, (_) async {
-          selectedAuthHeaders = authHeaders2;
-          return true;
-        }),
-        onFetched: onFetched,
-        onError: (e, t) => Logger.root.severe('Error in JsonHttpClient: $e', e, t));
-    client.cache.emptyCache();
-    return client;
-  }
+  setUp(() async {
+    server = MockWebServer(port: 8082);
+    await server.start();
+  });
+
+  tearDown(() async {
+    await server.shutdown();
+  });
 
   test('cache', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     // The response queue is First In First Out
     // 1 not cached
@@ -177,15 +187,10 @@ void main() {
     await s.asFuture();
     s.cancel();
     assert(count == 3, '(count=$count) Content from $refreshUrl is not cached using $cacheUrl as cache key');
-
-    await server.shutdown();
   });
 
   test('get', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     // The response queue is First In First Out
     server.enqueue(body: '[{ "data": "$typicalData1"}]');
@@ -207,15 +212,10 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
-
-    await server.shutdown();
   });
 
   test('post', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     // The response queue is First In First Out
     server.enqueue(body: '[{ "data": "$typicalData1"}]');
@@ -241,15 +241,10 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
-
-    await server.shutdown();
   });
 
   test('put', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     // The response queue is First In First Out
     server.enqueue(body: '[{ "data": "$typicalData1"}]');
@@ -276,15 +271,10 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
-
-    await server.shutdown();
   });
 
   test('delete', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     // The response queue is First In First Out
     server.enqueue(body: '[{ "data": "$typicalData1"}]');
@@ -310,15 +300,10 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
-
-    await server.shutdown();
   });
 
   test('patch', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     // The response queue is First In First Out
     server.enqueue(body: '[{ "data": "$typicalData1"}]');
@@ -344,16 +329,10 @@ void main() {
     expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
     // headers after 'refreshToken' contains authHeaders2
     expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
-
-    await server.shutdown();
   });
 
   test('errors', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-
-    final String prefix = server.url;
+    final JsonHttpClient client = await createClient();
 
     Object? error;
     List<Typical>? result;
@@ -450,8 +429,6 @@ void main() {
       fail('Exception should be thrown because we have valid cache but \'allowErrorWhenCacheExists==true`\'');
     }
     checkResult();
-
-    await server.shutdown();
   });
 
   test('on_fetched', () async {
@@ -460,12 +437,10 @@ void main() {
     drop() => fCalls = 0;
     onFetched(_, __) => fCalls++;
 
-    final JsonHttpClient client = createClient(onFetched: onFetched);
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
+    final JsonHttpClient client = await createClient(onFetched: onFetched);
 
-    final String prefix = server.url;
-
+    // normal case
+    server.enqueue(body: '[{ "data": "$typicalData1"}]');
     // put error
     server.enqueue(body: '[{ "data": "$typicalData1"}');
     // remove error
@@ -485,7 +460,11 @@ void main() {
 
     drop();
     await fetch();
-    if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
+    assert(fCalls == 1, 'onFetch(calls: $fCalls) should be called once because of valid data');
+
+    drop();
+    await fetch();
+    if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because of invalid data in the cache');
 
     drop();
     await fetch();
@@ -506,15 +485,11 @@ void main() {
     drop();
     await fetch();
     if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because  of HttpException');
-
-    await server.shutdown();
   });
 
   // also example of dealing with POST to cache results by hand
   test('post_cache', () async {
-    final JsonHttpClient client = createClient();
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
+    final JsonHttpClient client = await createClient();
 
     server.enqueue(body: '[{ "data": "$typicalData1"}]');
 
@@ -532,7 +507,5 @@ void main() {
     // 4. get result from cache
     final typical2 = await _TypicalFetcher(client).parse((await client.cache.peek(key))!);
     expect(typical2, equals(typical));
-
-    await server.shutdown();
   });
 }
