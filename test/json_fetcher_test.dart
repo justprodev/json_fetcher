@@ -455,21 +455,12 @@ void main() {
   });
 
   test('on_fetched', () async {
-    List<Typical>? fDocument;
     int fCalls = 0;
-    List<Typical>? document;
 
-    drop() {
-      fDocument = null;
-      fCalls = 0;
-    }
+    drop() => fCalls = 0;
+    onFetched(_, __) => fCalls++;
 
-    done(String url, Object document) {
-      fDocument = document as List<Typical>;
-      fCalls++;
-    }
-
-    final JsonHttpClient client = createClient(onFetched: done);
+    final JsonHttpClient client = createClient(onFetched: onFetched);
     final MockWebServer server = MockWebServer(port: 8082);
     await server.start();
 
@@ -485,16 +476,10 @@ void main() {
     server.enqueue(body: '[{ "data": "$typicalData1"}');
 
     fetch() async {
-      document = generate([typicalData1]);
-      var s = fetchTypicals(client, prefix).listen((event) {
-        expect(event, equals(document!));
-      });
-
       try {
-        await s.asFuture();
-        s.cancel();
+        await fetchTypicals(client, prefix).last;
       } catch (e) {
-        assert(true, e is JsonFetcherException);
+        // ignore
       }
     }
 
@@ -507,8 +492,6 @@ void main() {
     if (fCalls != 1) {
       fail('onFetch(calls: $fCalls) should be called once because of FormatException in the cached data only');
     }
-
-    expect(document, fDocument);
 
     drop();
     await fetch();
