@@ -3,10 +3,8 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:json_fetcher/json_fetcher.dart';
@@ -30,7 +28,7 @@ void main() {
     var selectedAuthHeaders = authHeaders1;
     final JsonHttpClient client =
         JsonHttpClient(LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: config),
-            auth: AuthInfo((_) => selectedAuthHeaders, (bool) async {
+            auth: AuthInfo((_) => selectedAuthHeaders, (_) async {
               selectedAuthHeaders = authHeaders2;
               return true;
             }));
@@ -39,8 +37,8 @@ void main() {
   }
 
   test('cut big json body', () async {
-    final JsonHttpClient client = createClient(config: LoggableHttpClientConfig(cutLongBody: true));
-    final MockWebServer server = new MockWebServer(port: 8082);
+    final JsonHttpClient client = createClient(config: const LoggableHttpClientConfig(cutLongBody: true));
+    final MockWebServer server = MockWebServer(port: 8082);
     await server.start();
 
     final String prefix = server.url;
@@ -67,20 +65,20 @@ void main() {
         }
       }
     });
-    await client.post(prefix + 'a', bigJson, headers: {'Content-Type': 'application/json'});
+    await client.post('${prefix}a', bigJson, headers: {'Content-Type': 'application/json'});
 
     await server.shutdown();
     await subs.cancel();
   });
 
   test('cut big plain body', () async {
-    final JsonHttpClient client = createClient(config: LoggableHttpClientConfig(cutLongBody: true));
-    final MockWebServer server = new MockWebServer(port: 8082);
+    final JsonHttpClient client = createClient(config: const LoggableHttpClientConfig(cutLongBody: true));
+    final MockWebServer server = MockWebServer(port: 8082);
     await server.start();
 
     final String prefix = server.url;
 
-    final String bigPlain = '${bigArray().join(',')}';
+    final String bigPlain = bigArray().join(',');
 
     // post big plain
     server.enqueue(body: bigPlain);
@@ -94,7 +92,7 @@ void main() {
         expect(bigPlain.length > cut.length, true);
       }
     });
-    await client.get(prefix + 'a');
+    await client.get('${prefix}a');
 
     await server.shutdown();
     await subs.cancel();
@@ -102,14 +100,14 @@ void main() {
 
   Future<void> testAuth(bool show) async {
     final JsonHttpClient client = createClient(config: LoggableHttpClientConfig(hideAuthorization: !show));
-    final MockWebServer server = new MockWebServer(port: 8082);
+    final MockWebServer server = MockWebServer(port: 8082);
     await server.start();
     final String prefix = server.url;
 
     server.enqueue(body: 'body', headers: {'Content-type': 'application/json', ...authHeaders1});
     final subs = Logger.root.onRecord.listen((record) {
       if (record.message.contains('<--')) return; // skip incoming
-      debugPrint(record.toString());
+      //debugPrint(record.toString());
       final ss = record.message.split('header: ');
       assert(ss.length == 2, 'headers isn\'t present');
       if (ss.length > 1) {
@@ -129,7 +127,7 @@ void main() {
         }
       }
     });
-    await client.get(prefix + 'a');
+    await client.get('${prefix}a');
 
     await server.shutdown();
     await subs.cancel();
@@ -150,7 +148,7 @@ void main() {
     } else {
       client = createClient(config: LoggableHttpClientConfig(logOutputBody: show));
     }
-    final MockWebServer server = new MockWebServer(port: 8082);
+    final MockWebServer server = MockWebServer(port: 8082);
     await server.start();
     final String prefix = server.url;
 
@@ -162,15 +160,15 @@ void main() {
         if (record.message.contains('-->')) return; // skip outgoing
       }
 
-      debugPrint(record.toString());
+      //debugPrint(record.toString());
       if(show) {
-        assert(record.message.indexOf('body: body') > -1, 'body isn\'t present');
+        assert(record.message.contains('body: body'), 'body isn\'t present');
       } else {
-        assert(record.message.indexOf('body: body') == -1, 'body is present');
+        assert(!record.message.contains('body: body'), 'body is present');
       }
 
     });
-    await client.post(prefix + 'a', 'body');
+    await client.post('${prefix}a', 'body');
 
     await server.shutdown();
     await subs.cancel();
