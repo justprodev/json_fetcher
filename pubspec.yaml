@@ -4,15 +4,16 @@ version: 1.4.18
 homepage: https://github.com/justprodev/json_fetcher
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=2.17.0 <4.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  http: ^1.1.2
+  http: ^1.2.1
   hive_flutter: ^1.1.0
+  meta:
 
   logging:
 
@@ -21,7 +22,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  test: ^1.16.0
+  test: ^1.24.9
 
   mock_web_server: ^5.0.0-nullsafety.1
 
