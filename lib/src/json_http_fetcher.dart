@@ -3,9 +3,9 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-
-import 'package:json_fetcher/json_fetcher.dart';
 import 'package:meta/meta.dart';
+import 'json_fetcher_exception.dart';
+import 'json_http_client.dart';
 
 ///
 ///
