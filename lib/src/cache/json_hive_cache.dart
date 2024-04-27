@@ -13,7 +13,7 @@ const _boxName = '__hive_json_hive_cache';
 
 // todo: move get outside, because is useful for any cache
 
-class JsonHiveCache implements JsonCache {
+class JsonHiveCache extends JsonCache {
   final Future<String> Function(String url, Map<String, String>? headers) _get;
   final Function(Object error, StackTrace trace)? _onError;
 
@@ -90,9 +90,9 @@ class JsonHiveCache implements JsonCache {
   }
 
   @override
-  Future<void> evict(String url) async {
+  Future<void> delete(String key) async {
     if (!_isInit) await _init();
-    await _cache.delete(createKey(url));
+    await _cache.delete(key);
   }
 
   @override

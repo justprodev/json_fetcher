@@ -3,7 +3,7 @@
 // MIT License that can be found in the LICENSE file.
 
 /// Cache for JSON data
-abstract class JsonCache {
+abstract class JsonCache implements BaseCache {
   /// get json.
   ///
   /// Algorithm:
@@ -17,18 +17,24 @@ abstract class JsonCache {
   ///
   Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false, String? cacheUrl});
 
-  /// force remove file from the cache
-  Future<void> evict(String url);
+  /// create cache key
+  String createKey(String data);
+
+  /// remove json from the cache
+  Future<void> evict(String url) => delete(createKey(url));
+}
+
+/// Base cache operations, not related to network
+abstract class BaseCache {
+  /// get string from cache
+  Future<String?> peek(String key);
+
+  /// put string to cache
+  Future<void> put(String key, String value);
+
+  /// remove string from cache
+  Future<void> delete(String key);
 
   /// empty the cache entirely
   Future<void> emptyCache();
-
-  /// get json from cache
-  Future<String?> peek(String key);
-
-  /// put json to cache
-  Future<void> put(String key, String json);
-
-  /// create cache key
-  String createKey(String data);
 }
