@@ -102,7 +102,7 @@ class JsonHiveCache extends JsonCache {
   }
 
   @override
-  Future<String> peek(String key) async {
+  Future<String?> peek(String key) async {
     if (!_isInit) await _init();
     return await _cache.get(key);
   }
