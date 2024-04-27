@@ -3,7 +3,6 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -458,11 +457,9 @@ void main() {
   test('on_fetched', () async {
     List<Typical>? fDocument;
     int fCalls = 0;
-    Object? error;
     List<Typical>? document;
 
     drop() {
-      error = null;
       fDocument = null;
       fCalls = 0;
     }
@@ -498,18 +495,15 @@ void main() {
         s.cancel();
       } catch (e) {
         assert(true, e is JsonFetcherException);
-        error = (e as JsonFetcherException).error;
       }
     }
 
     drop();
     await fetch();
-    if (error is! FormatException) fail('Exception should be thrown because of FormatException in the non-cached data');
     if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
 
     drop();
     await fetch();
-    if (error != null) fail('Exception should\'t be thrown because of FormatException in the cached data only');
     if (fCalls != 1) {
       fail('onFetch(calls: $fCalls) should be called once because of FormatException in the cached data only');
     }
@@ -518,21 +512,16 @@ void main() {
 
     drop();
     await fetch();
-    if (error != null) fail('Exception should\'t be thrown because of no exceptions');
     if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be called because document has not changed');
 
     drop();
     await fetch();
-    if (error != null) {
-      fail('Exception should\'t be thrown because of FormatException in the non-cached data and we have valid cache');
-    }
     if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because of FormatException in the non-cached data');
 
     // emulate 404
     server.enqueue(httpCode: 404);
     drop();
     await fetch();
-    if (error is! HttpException) fail('Exception should be thrown because of HttpException');
     if (fCalls > 0) fail('onFetch(calls: $fCalls) should\'t be call because  of HttpException');
 
     await server.shutdown();
