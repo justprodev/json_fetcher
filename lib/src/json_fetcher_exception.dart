@@ -1,5 +1,4 @@
 import 'dart:io' show IOException;
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' show ClientException, Response;
 
 /// Created by alex@justprodev.com on 19.06.2022.
