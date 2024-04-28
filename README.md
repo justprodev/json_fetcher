@@ -1,4 +1,5 @@
 ![test on release](https://github.com/justprodev/json_fetcher/actions/workflows/release.yaml/badge.svg)
+[![codecov](https://codecov.io/gh/justprodev/json_fetcher/graph/badge.svg?token=2EOK5RXNB4)](https://codecov.io/gh/justprodev/json_fetcher)
 
 # json_fetcher
 
