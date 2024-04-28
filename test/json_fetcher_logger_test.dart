@@ -6,43 +6,24 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:json_fetcher/loggable_http_client.dart';
 import 'package:logging/logging.dart';
-import 'package:mock_web_server/mock_web_server.dart';
 
-import 'fake_path_provider.dart';
+import 'utils/create_client.dart';
+import 'utils/fake_path_provider.dart';
+import 'utils/mock_web_server.dart';
 
 void main() {
   setUpFakePathProvider();
-
-  final Map<String, String> authHeaders1 = {'authorization': 'Bearer 12345'};
-  final Map<String, String> authHeaders2 = {'authorization': 'Bearer 67890'};
+  setUpMockWebServer();
 
   final r = Random();
   String bigString() => List.generate(longJsonFieldLength, (index) => r.nextBool() ? 'A' : 'B').join('');
   List<String> bigArray() => List.generate(longBodyLength ~/ longJsonFieldLength, (index) => '"${bigString()}"');
 
-  JsonHttpClient createClient({config = const LoggableHttpClientConfig()}) {
-    var selectedAuthHeaders = authHeaders1;
-    final JsonHttpClient client =
-        JsonHttpClient(LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: config),
-            auth: AuthInfo((_) => selectedAuthHeaders, (_) async {
-              selectedAuthHeaders = authHeaders2;
-              return true;
-            }));
-    client.cache.emptyCache();
-    return client;
-  }
-
   test('cut big json body', () async {
-    final JsonHttpClient client = createClient(config: const LoggableHttpClientConfig(cutLongBody: true));
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-
-    final String prefix = server.url;
-
+    final client = await createClient(config: const LoggableHttpClientConfig(cutLongBody: true));
     final String bigJson = '{ "data": [${bigArray().join(',')}] }';
 
     // post big json
@@ -66,18 +47,11 @@ void main() {
       }
     });
     await client.post('${prefix}a', bigJson, headers: {'Content-Type': 'application/json'});
-
-    await server.shutdown();
     await subs.cancel();
   });
 
   test('cut big plain body', () async {
-    final JsonHttpClient client = createClient(config: const LoggableHttpClientConfig(cutLongBody: true));
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-
-    final String prefix = server.url;
-
+    final client = await createClient(config: const LoggableHttpClientConfig(cutLongBody: true));
     final String bigPlain = bigArray().join(',');
 
     // post big plain
@@ -94,15 +68,11 @@ void main() {
     });
     await client.get('${prefix}a');
 
-    await server.shutdown();
     await subs.cancel();
   });
 
   Future<void> testAuth(bool show) async {
-    final JsonHttpClient client = createClient(config: LoggableHttpClientConfig(hideAuthorization: !show));
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
+    final client = await createClient(config: LoggableHttpClientConfig(hideAuthorization: !show));
 
     server.enqueue(body: 'body', headers: {'Content-type': 'application/json', ...authHeaders1});
     final subs = Logger.root.onRecord.listen((record) {
@@ -128,8 +98,6 @@ void main() {
       }
     });
     await client.get('${prefix}a');
-
-    await server.shutdown();
     await subs.cancel();
   }
 
@@ -143,14 +111,11 @@ void main() {
 
   Future<void> testBody(bool input, bool show) async {
     final JsonHttpClient client;
-    if(input) {
-      client = createClient(config: LoggableHttpClientConfig(logInputBody: show));
+    if (input) {
+      client = await createClient(config: LoggableHttpClientConfig(logInputBody: show));
     } else {
-      client = createClient(config: LoggableHttpClientConfig(logOutputBody: show));
+      client = await createClient(config: LoggableHttpClientConfig(logOutputBody: show));
     }
-    final MockWebServer server = MockWebServer(port: 8082);
-    await server.start();
-    final String prefix = server.url;
 
     server.enqueue(body: 'body', headers: {'Content-type': 'application/json', ...authHeaders1});
     final subs = Logger.root.onRecord.listen((record) {
@@ -161,16 +126,14 @@ void main() {
       }
 
       //debugPrint(record.toString());
-      if(show) {
+      if (show) {
         assert(record.message.contains('body: body'), 'body isn\'t present');
       } else {
         assert(!record.message.contains('body: body'), 'body is present');
       }
-
     });
     await client.post('${prefix}a', 'body');
 
-    await server.shutdown();
     await subs.cancel();
   }
 
