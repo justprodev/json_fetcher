@@ -22,7 +22,7 @@ abstract class JsonCache implements BaseCache {
   String createKey(String data);
 
   /// remove json from the cache
-  Future<void> evict(String url) => delete(createKey(url));
+  Future<void> evict(String url, {String? body}) => delete(buildKey(url, body: body));
 }
 
 /// Base cache operations, not related to network
@@ -38,4 +38,11 @@ abstract class BaseCache {
 
   /// empty the cache entirely
   Future<void> emptyCache();
+}
+
+extension KeyBuilder on JsonCache {
+  /// builds key for cache based on url and body
+  String buildKey(String url, {String? body}) {
+    return createKey(body == null ? url : '$url$body');
+  }
 }

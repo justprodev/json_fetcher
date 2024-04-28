@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'package:meta/meta.dart';
+import 'json_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_client.dart';
 
@@ -35,10 +36,10 @@ abstract class JsonHttpFetcher<T> {
     final String key;
 
     if (body != null) {
-      assert(cacheUrl == null, 'cacheUrl must be null, because body is provided');
-      key = _client.cache.createKey(url + body);
+      assert(cacheUrl == null, 'cacheUrl could not be used with body');
+      key = _client.cache.buildKey(url, body: body);
     } else {
-      key = _client.cache.createKey(cacheUrl ?? url);
+      key = _client.cache.buildKey(cacheUrl ?? url);
     }
 
     JsonFetcherException? error;
