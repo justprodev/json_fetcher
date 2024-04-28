@@ -7,7 +7,7 @@ This method of caching JSON data results in a smoother UI.
 
 ## Cache
 
-At low level a cached data are managed by [hive]([https://github.com/hivedb/hive](https://github.com/isar/hive/tree/legacy)).
+At low level a cached data are managed by [hive](https://github.com/isar/hive/tree/legacy).
 But, a data will be always updated at the second step. Thats why we use ```Stream<T>``` instead of ```Future<T>```.
 
 ## Getting Started
