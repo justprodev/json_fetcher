@@ -24,7 +24,11 @@ dev_dependencies:
 
   test: ^1.24.9
 
-  mock_web_server: ^5.0.0-nullsafety.1
+  #mock_web_server: ^5.0.0-nullsafety.1
+  mock_web_server:
+    git:
+      url: https://github.com/justprodev/MockWebServer.git
+      ref: 5.0.0-nullsafety.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
