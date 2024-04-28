@@ -36,8 +36,6 @@ class _TypicalFetcher extends HttpJsonFetcher<List<Typical>> {
 
 Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String url) => _TypicalFetcher(client).fetch(url);
 
-
-
 ```
 
-Also, see [test/json_fetcher_test.dart](test/json_fetcher_test.dart)
+Examples coming soon
