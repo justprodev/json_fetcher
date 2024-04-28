@@ -29,9 +29,19 @@ abstract class JsonHttpFetcher<T> {
     allowErrorWhenCacheExists = false,
     Map<String, String>? headers,
     String? cacheUrl,
+    String? body,
+    bool usePost = false,
   }) async* {
+    final String key;
+
+    if (body != null) {
+      assert(cacheUrl == null, 'cacheUrl must be null, because body is provided');
+      key = _client.cache.createKey(url + body);
+    } else {
+      key = _client.cache.createKey(cacheUrl ?? url);
+    }
+
     JsonFetcherException? error;
-    final key = _client.cache.createKey(cacheUrl ?? url);
     final cachedString = await _client.cache.peek(key);
     T? cachedDocument;
 
@@ -45,7 +55,7 @@ abstract class JsonHttpFetcher<T> {
     }
 
     try {
-      final onlineString = (await _client.get(url, headers: headers)).body;
+      final onlineString = await _sendRequest(url, headers: headers, body: body, usePost: usePost);
       await _client.cache.put(key, onlineString);
 
       if (cachedString != onlineString) {
@@ -70,8 +80,24 @@ abstract class JsonHttpFetcher<T> {
   }
 
   /// just get without caching
-  Future<T> get(String url, {Map<String, String>? headers}) async {
-    final String jsonString = (await _client.get(url, headers: headers)).body;
+  Future<T> get(
+    String url, {
+    Map<String, String>? headers,
+    String? body,
+    bool usePost = false,
+  }) async {
+    final String jsonString = await _sendRequest(url, headers: headers, body: body, usePost: usePost);
     return await parse(jsonString);
+  }
+
+  /// returns body of the response
+  Future<String> _sendRequest(
+    String url, {
+    Map<String, String>? headers,
+    required String? body,
+    required bool usePost,
+  }) async {
+    final r = usePost ? _client.post(url, body!, headers: headers) : _client.get(url, headers: headers, json: body);
+    return (await r).body;
   }
 }
