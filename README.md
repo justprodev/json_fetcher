@@ -1,3 +1,5 @@
+![test on release](https://github.com/justprodev/json_fetcher/actions/workflows/release.yaml/badge.svg)
+
 # json_fetcher
 
 Tools to easily work with JSON services/data over HTTP + cache.
