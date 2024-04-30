@@ -67,7 +67,11 @@ abstract class JsonHttpFetcher<T> {
         _client.onFetched?.call(url, document!);
       }
     } catch (e, t) {
-      error = JsonFetcherException(url, e.toString(), e, trace: t);
+      if(e is JsonFetcherException) {
+        error = e;
+      } else {
+        error = JsonFetcherException(url, e.toString(), e, trace: t);
+      }
     }
 
     if (error != null) {
