@@ -7,6 +7,7 @@ late MockWebServer server;
 
 String get prefix => server.url;
 
+/// starts mock web server for every test and shuts it down after each test
 setUpMockWebServer() {
   setUp(() async {
     server = MockWebServer(port: 8082);
