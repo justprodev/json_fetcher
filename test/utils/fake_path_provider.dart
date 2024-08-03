@@ -14,8 +14,9 @@ const String kApplicationDocumentsPath = 'applicationDocumentsPath';
 const String kExternalCachePath = 'externalCachePath';
 const String kExternalStoragePath = 'externalStoragePath';
 
+/// Sets up the fake [PathProviderPlatform] for all tests.
 setUpFakePathProvider() {
-  setUp(() async {
+  setUpAll(() async {
     PathProviderPlatform.instance = FakePathProviderPlatform();
   });
 }
