@@ -3,15 +3,13 @@
 // MIT License that can be found in the LICENSE file.
 
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:json_fetcher/standard_fetchers.dart';
 
 import 'utils/create_client.dart';
-import 'utils/fake_path_provider.dart';
 import 'utils/mock_web_server.dart';
 
 void main() {
-  setUpFakePathProvider();
   setUpMockWebServer();
 
   test('plain', () async {

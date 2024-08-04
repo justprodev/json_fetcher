@@ -4,16 +4,14 @@
 
 import 'dart:convert';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 
 import 'utils/create_client.dart';
-import 'utils/fake_path_provider.dart';
 import 'utils/mock_web_server.dart';
 import 'utils/typicals.dart';
 
 void main() {
-  setUpFakePathProvider();
   setUpMockWebServer();
 
   // enable logging HTTP requests

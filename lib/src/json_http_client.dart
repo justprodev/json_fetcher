@@ -9,12 +9,22 @@ import 'package:http/http.dart' as http;
 import 'package:json_fetcher/src/util/http.dart';
 
 import 'auth_info.dart';
-import 'cache/http_hive_cache.dart';
 import 'http_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_fetcher.dart';
 
 /// Client especially for fetching json from host(s)
+///
+/// Example of usage:
+/// ```dart
+///
+/// import 'package:json_fetcher/json_fetcher.dart';
+/// import 'package:http/http.dart' as http;
+///
+/// final client = JsonHttpClient(http.Client(), createCache());
+///
+/// ```
+///
 class JsonHttpClient {
   /// delegated [http.Client] which will be used for all requests
   final http.Client _client;
@@ -27,9 +37,14 @@ class JsonHttpClient {
   final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
-  final HttpCache _cache = HttpHiveCache();
+  final HttpCache _cache;
 
-  JsonHttpClient(this._client, {this.auth, this.onError, this.onFetched});
+  JsonHttpClient(
+    this._client, this._cache, {
+    this.auth,
+    this.onError,
+    this.onFetched,
+  });
 
   Future<http.Response> post(String url, String json, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
       _send('POST', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);

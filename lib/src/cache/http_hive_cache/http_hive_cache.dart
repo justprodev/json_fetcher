@@ -4,24 +4,27 @@
 
 import 'dart:async';
 
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive/hive.dart';
 
-import '../http_cache.dart';
+import '../../http_cache.dart';
 
 const _boxName = '__hive_json_hive_cache';
 
 class HttpHiveCache extends HttpCache {
+  final String? _path;
   late final LazyBox _cache;
 
   bool _isInit = false;
   Future<void>? _initializing;
+
+  HttpHiveCache(this._path);
 
   Future<void> _init() async {
     if (_initializing == null) {
       // start initializing process
       Future<void> init() async {
         if (_isInit) return; // for any case
-        await Hive.initFlutter();
+        Hive.init(_path);
         try {
           _cache = await Hive.openLazyBox(_boxName);
         } catch (e) {

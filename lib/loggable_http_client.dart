@@ -2,8 +2,8 @@
 // All rights reserved. Use of this source code is governed by a
 // MIT License that can be found in the LICENSE file.
 import 'dart:convert';
+import 'dart:isolate';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 
@@ -69,7 +69,7 @@ class LoggableHttpClient extends BaseClient {
   Future<String> _smartCut(String? contentType, String body) async {
     if (config.cutLongBody && body.length > longBodyLength) {
       if (contentType?.contains('/json') == true) {
-        return compute(_smartCutJson, body);
+        return Isolate.run(() => _smartCutJson(body));
       } else {
         return "${body.substring(0, longBodyLength)}...";
       }
