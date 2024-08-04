@@ -9,8 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:json_fetcher/src/util/http.dart';
 
 import 'auth_info.dart';
-import 'cache/json_hive_cache.dart';
-import 'json_cache.dart';
+import 'cache/http_hive_cache.dart';
+import 'http_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_fetcher.dart';
 
@@ -27,7 +27,7 @@ class JsonHttpClient {
   final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
-  final HttpCache _cache = JsonHiveCache();
+  final HttpCache _cache = HttpHiveCache();
 
   JsonHttpClient(this._client, {this.auth, this.onError, this.onFetched});
 

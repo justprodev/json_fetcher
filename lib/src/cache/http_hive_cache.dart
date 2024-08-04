@@ -6,12 +6,12 @@ import 'dart:async';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../json_cache.dart';
+import '../http_cache.dart';
 import '../util/fnv1a_hash/fnv1a_hash.dart';
 
 const _boxName = '__hive_json_hive_cache';
 
-class JsonHiveCache extends HttpCache {
+class HttpHiveCache extends HttpCache {
   late final LazyBox _cache;
 
   bool _isInit = false;
