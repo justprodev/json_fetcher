@@ -37,9 +37,9 @@ abstract class JsonHttpFetcher<T> {
 
     if (body != null) {
       assert(cacheUrl == null, 'cacheUrl could not be used with body');
-      key = _client.cache.buildKey(url, body: body);
+      key = _client.cache.createKey(url, body: body);
     } else {
-      key = _client.cache.buildKey(cacheUrl ?? url);
+      key = _client.cache.createKey(cacheUrl ?? url);
     }
 
     JsonFetcherException? error;

@@ -11,18 +11,11 @@ import '../util/fnv1a_hash/fnv1a_hash.dart';
 
 const _boxName = '__hive_json_hive_cache';
 
-// todo: move get outside, because is useful for any cache
-
-class JsonHiveCache extends JsonCache {
-  final Future<String> Function(String url, Map<String, String>? headers) _get;
-  final Function(Object error, StackTrace trace)? _onError;
-
+class JsonHiveCache extends HttpCache {
   late final LazyBox _cache;
 
   bool _isInit = false;
   Future<void>? _initializing;
-
-  JsonHiveCache(this._get, this._onError);
 
   Future<void> _init() async {
     if (_initializing == null) {
@@ -43,50 +36,6 @@ class JsonHiveCache extends JsonCache {
       _initializing = init();
     }
     await _initializing; // wait the new one or already exists process
-  }
-
-  @override
-  Stream<String> get(String url, {Map<String, String>? headers, bool nocache = false, String? cacheUrl}) {
-    StreamController<String> controller = StreamController.broadcast();
-
-    void getValue() async {
-      try {
-        if (!_isInit) await _init();
-
-        String? cachedString;
-
-        if (!nocache) {
-          try {
-            cachedString = await _cache.get(createKey(cacheUrl ?? url));
-          } catch (e, trace) {
-            // probably not fatal error, just skip
-            // but report
-            _onError?.call(e, trace);
-          }
-
-          if (cachedString != null && !controller.isClosed) {
-            controller.add(cachedString);
-          }
-        }
-
-        //print("download $url start");
-        final onlineString = await _download(url, headers: headers, cacheUrl: cacheUrl);
-        //print("download $url stop");
-        if (!controller.isClosed) {
-          if (onlineString != cachedString) {
-            controller.add(onlineString);
-          }
-        } // online
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-      } finally {
-        if (!controller.isClosed) await controller.close();
-      }
-    }
-
-    getValue();
-
-    return controller.stream;
   }
 
   @override
@@ -114,11 +63,5 @@ class JsonHiveCache extends JsonCache {
   }
 
   @override
-  String createKey(String data) => fastHash(data);
-
-  Future<String> _download(String url, {Map<String, String>? headers, String? cacheUrl}) async {
-    final String value = await _get(url, headers);
-    await _cache.put(createKey(cacheUrl ?? url), value);
-    return value;
-  }
+  String createKey(String url, {String? body}) => fastHash('$url${body ?? ''}');
 }

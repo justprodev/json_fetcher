@@ -27,10 +27,7 @@ class JsonHttpClient {
   final Function(String url, Object document)? onFetched;
 
   /// cache manager used by [JsonHttpFetcher]
-  late final JsonCache _cache = JsonHiveCache((url, headers) async {
-    final response = await get(url, headers: headers);
-    return response.body;
-  }, onError);
+  final HttpCache _cache = JsonHiveCache();
 
   JsonHttpClient(this._client, {this.auth, this.onError, this.onFetched});
 
@@ -60,8 +57,8 @@ class JsonHttpClient {
 
   void logout() => auth?.onExpire.call(true);
 
-  /// can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
-  JsonCache get cache => _cache;
+  /// can be used to directly control the cache (i.e. [HttpCache.emptyCache]/[HttpCache.evict])
+  HttpCache get cache => _cache;
 
   /// So, basically is just wrapper over [BaseClientExt.sendUnstreamed] which:
   ///
