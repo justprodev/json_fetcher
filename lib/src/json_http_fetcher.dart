@@ -4,7 +4,6 @@
 
 import 'dart:async';
 import 'package:meta/meta.dart';
-import 'json_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_client.dart';
 
