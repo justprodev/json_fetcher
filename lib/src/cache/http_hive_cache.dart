@@ -7,7 +7,6 @@ import 'dart:async';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../http_cache.dart';
-import '../util/fnv1a_hash/fnv1a_hash.dart';
 
 const _boxName = '__hive_json_hive_cache';
 
@@ -61,7 +60,4 @@ class HttpHiveCache extends HttpCache {
     if (!_isInit) await _init();
     await _cache.put(key, json);
   }
-
-  @override
-  String createKey(String url, {String? body}) => fastHash('$url${body ?? ''}');
 }
