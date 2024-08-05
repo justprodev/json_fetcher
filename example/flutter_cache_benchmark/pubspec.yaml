@@ -1,15 +1,18 @@
-name: cache_benchmark
+name: flutter_cache_benchmark
 description: "Benchmarking json_fetcher caches"
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.4.4 <4.0.0'
+  sdk: ^3.0.0
 
 dependencies:
   flutter:
     sdk: flutter
+
+  dart_cache_benchmark:
+    path: ../dart_cache_benchmark
 
   json_fetcher:
     path: ../../../json_fetcher

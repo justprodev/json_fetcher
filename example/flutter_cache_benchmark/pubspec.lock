@@ -57,6 +57,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dart_cache_benchmark:
+    dependency: "direct main"
+    description:
+      path: "../dart_cache_benchmark"
+      relative: true
+    source: path
+    version: "1.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -121,7 +128,7 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "2.0.0-rc.1"
+    version: "2.0.0-rc.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -352,5 +359,5 @@ packages:
     source: hosted
     version: "1.0.4"
 sdks:
-  dart: ">=3.4.4 <4.0.0"
+  dart: ">=3.4.0 <4.0.0"
   flutter: ">=3.22.0"
