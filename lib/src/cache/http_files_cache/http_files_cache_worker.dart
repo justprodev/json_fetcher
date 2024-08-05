@@ -4,6 +4,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:meta/meta.dart';
+
 /// Isolate worker for cache operations
 ///
 /// 1. Using sync file IO
@@ -42,8 +44,8 @@ class HttpFilesCacheWorker {
     initPort.handler = (initialMessage) {
       final commandPort = initialMessage as SendPort;
       connection.complete((
-      ReceivePort.fromRawReceivePort(initPort),
-      commandPort,
+        ReceivePort.fromRawReceivePort(initPort),
+        commandPort,
       ));
     };
     // Spawn the isolate.
@@ -66,7 +68,7 @@ class HttpFilesCacheWorker {
     receivePort.listen((message) {
       try {
         final job = message as Job;
-        sendPort.send(_handleJob(path, job));
+        sendPort.send(handleJob(path, job));
       } catch (e, trace) {
         sendPort.send(RemoteError(e.toString(), trace.toString()));
       }
@@ -74,12 +76,13 @@ class HttpFilesCacheWorker {
   }
 
   /// IO operations
+  @visibleForTesting
   @pragma('vm:prefer-inline')
-  static Job _handleJob(String path, Job job) {
+  static Job handleJob(String path, Job job) {
     switch (job.type) {
       case JobType.put:
         final key = job.key!;
-        final Directory dir = _getDirectory(path, key);
+        final Directory dir = getDirectory(path, key);
 
         if (!dir.existsSync()) dir.createSync();
 
@@ -91,7 +94,7 @@ class HttpFilesCacheWorker {
         return job.withValue(null);
       case JobType.peek:
         final key = job.key!;
-        final Directory dir = _getDirectory(path, key);
+        final Directory dir = getDirectory(path, key);
 
         final file = File('${dir.path}/$key');
         if (file.existsSync()) {
@@ -101,7 +104,7 @@ class HttpFilesCacheWorker {
         }
       case JobType.delete:
         final key = job.key!;
-        final Directory dir = _getDirectory(path, key);
+        final Directory dir = getDirectory(path, key);
 
         File('${dir.path}/$key').deleteSync();
 
@@ -122,15 +125,16 @@ class Job {
   final String? key;
   final String? value;
 
-  Job(this.type, this.key, [this.value]);
+  const Job(this.type, this.key, [this.value]);
 
   Job withValue(String? value) => Job(type, key, value);
 }
 
 enum JobType { put, peek, delete, emptyCache }
 
+@visibleForTesting
 @pragma('vm:prefer-inline')
-Directory _getDirectory(String path, String key) {
+Directory getDirectory(String path, String key) {
   final bKey = int.parse(key);
   return Directory('$path/d_${bKey ~/ 100}');
 }
