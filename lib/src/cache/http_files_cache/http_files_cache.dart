@@ -23,16 +23,16 @@ class HttpFilesCache extends HttpCache {
   static Completer? _initializing;
   static bool _isInit = false;
 
-  late final String path;
+  late final String _path;
 
   HttpFilesCache(String path) {
     /// Using subdirectory to avoid conflicts with other files
-    this.path = '$path/$subDirPath';
+    _path = '$path/$subDirPath';
 
     Future<void> init() async {
       _initializing = Completer();
       try {
-        await Directory(path).create(recursive: true);
+        await Directory(_path).create(recursive: true);
         _worker = await HttpFilesCacheWorker.create();
         _isInit = true;
         _initializing?.complete();
@@ -49,25 +49,25 @@ class HttpFilesCache extends HttpCache {
   @override
   Future<void> delete(String key) async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(path, JobType.delete, key));
+    await _worker.run(Job(_path, JobType.delete, key));
   }
 
   @override
   Future<String?> peek(String key) async {
     if (_initializing != null) await _initializing!.future;
-    return (await _worker.run(Job(path, JobType.peek, key))).value;
+    return (await _worker.run(Job(_path, JobType.peek, key))).value;
   }
 
   @override
   Future<void> put(String key, String value) async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(path, JobType.put, key, value));
+    await _worker.run(Job(_path, JobType.put, key, value));
   }
 
   @override
   Future<void> emptyCache() async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(path, JobType.emptyCache, null));
+    await _worker.run(Job(_path, JobType.emptyCache, null));
   }
 
   /// This implementation uses FNV-1a hash function of the url + body
