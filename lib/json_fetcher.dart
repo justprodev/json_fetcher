@@ -5,7 +5,6 @@
 export 'src/json_http_fetcher.dart';
 export 'src/json_http_client.dart';
 export 'src/json_fetcher_exception.dart';
-export 'src/auth_info.dart';
 export 'src/http_cache.dart';
 
 import 'src/http_cache.dart';
