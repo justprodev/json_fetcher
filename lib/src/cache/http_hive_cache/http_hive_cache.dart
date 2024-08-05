@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:hive/hive.dart';
+import 'package:json_fetcher/src/util/fnv1a_hash/fnv1a_hash.dart';
 
 import '../../http_cache.dart';
 
@@ -63,4 +64,8 @@ class HttpHiveCache extends HttpCache {
     if (!_isInit) await _init();
     await _cache.put(key, json);
   }
+
+  /// This implementation uses FNV-1a hash function of the url + body
+  @override
+  String createKey(String url, {String? body}) => fastHash('$url${body ?? ''}');
 }

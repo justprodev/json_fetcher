@@ -6,15 +6,15 @@ import 'util/fnv1a_hash/fnv1a_hash.dart';
 
 /// Cache for data fetched from the network
 abstract class HttpCache implements BaseCache {
+  const HttpCache();
+
   /// create key based on url and body
   ///
   /// [url] - url of the request
   /// [body] - body of the request
   ///
   /// returns key to use in BaseCache methods
-  ///
-  /// This implementation uses FNV-1a hash function of the url + body
-  String createKey(String url, {String? body}) => fastHash('$url${body ?? ''}');
+  String createKey(String url, {String? body});
 
   /// remove json from the cache
   ///

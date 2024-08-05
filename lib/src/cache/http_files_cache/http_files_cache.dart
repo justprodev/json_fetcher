@@ -65,7 +65,7 @@ class HttpFilesCache extends HttpCache {
     await _worker.run(Job(JobType.emptyCache, null));
   }
 
-  /// Overriding just to prevent possibly using other method in base class
+  /// This implementation uses FNV-1a hash function of the url + body
   @override
   String createKey(String url, {String? body}) => fastHash('$url${body ?? ''}');
 }
