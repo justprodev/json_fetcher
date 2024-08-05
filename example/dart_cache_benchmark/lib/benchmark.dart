@@ -10,14 +10,19 @@ Future<String> runBenchmark(List<BaseCache> caches) async {
     return 'lorem ipsum dolor sit amet';
   }).join('\n');
 
-  String results = '\nKey value size: ${(value.length/1024).toStringAsFixed(1)} KB\n\n';
+  String results = '\nKey value size: ${(value.length / 1024).toStringAsFixed(1)} KB\n\n';
 
   final keys = List.generate(10000, (index) => index.toString());
   final values = Map.fromEntries(keys.map((key) => MapEntry(key, value)));
 
-  for(final cache in caches) {
+  for (final cache in caches) {
+    final stopwatch = Stopwatch()..start();
+    final timer = Timer.periodic(Duration(milliseconds: 8), (_) {});
     results += await _runBenchmark(cache, values);
+    results += 'Main thread latency: ${stopwatch.elapsedMilliseconds / 8 - timer.tick} ms\n\n';
     results += '\n\n';
+    stopwatch.stop();
+    timer.cancel();
   }
 
   return results;
