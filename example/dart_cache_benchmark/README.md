@@ -1,3 +1,4 @@
+```
 dart_cache_benchmark % dart bin/dart_cache_benchmark.dart
 
 Key value size: 27.0 KB
@@ -22,3 +23,4 @@ Random put 1000 keys: 290 ms
 crc32: 28265458430000
 Delete 10000 keys: 556 ms
 Empty cache: 0 ms
+```
