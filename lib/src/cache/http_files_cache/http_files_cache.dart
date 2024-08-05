@@ -25,14 +25,16 @@ class HttpFilesCache extends HttpCache {
 
   late final String _path;
 
+  /// **[path] must point to an existing writable directory**
   HttpFilesCache(String path) {
     /// Using subdirectory to avoid conflicts with other files
     _path = '$path/$subDirPath';
 
+    if(Directory(_path).existsSync()) Directory(_path).createSync();
+
     Future<void> init() async {
       _initializing = Completer();
       try {
-        await Directory(_path).create(recursive: true);
         _worker = await HttpFilesCacheWorker.create();
         _isInit = true;
         _initializing?.complete();
