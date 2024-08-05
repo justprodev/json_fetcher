@@ -1,6 +1,6 @@
 name: json_fetcher
 description: Wrapper over standard HttpClient with caching/auth-handling/etc
-version: 2.0.0-rc.4
+version: 2.0.0-rc.5
 homepage: https://github.com/justprodev/json_fetcher
 
 environment:
