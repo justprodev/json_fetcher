@@ -2,8 +2,6 @@
 // All rights reserved. Use of this source code is governed by a
 // MIT License that can be found in the LICENSE file.
 
-import 'util/fnv1a_hash/fnv1a_hash.dart';
-
 /// Cache for data fetched from the network
 abstract class HttpCache implements BaseCache {
   const HttpCache();
