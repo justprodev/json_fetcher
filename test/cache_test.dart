@@ -21,7 +21,8 @@ void main() {
 
   group('io', () {
     group('worker', () {
-      test('handleJob', () => testWorker());
+      test('handleJob', () => workerHandleJob());
+      test('error', () => workerError());
     });
 
     test('cache', () async {
@@ -53,7 +54,7 @@ Future<void> testCache(HttpCache impl) async {
   }
 }
 
-Future<void> testWorker() async {
+Future<void> workerHandleJob() async {
   final root = Directory('$temp/handle_job');
   if (root.existsSync()) root.deleteSync(recursive: true);
   root.createSync(recursive: true);
@@ -106,4 +107,15 @@ Future<void> testWorker() async {
     expect(result.type, job.type);
     expect(result.key, job.key);
   }
+}
+
+Future<void> workerError() async {
+  final worker = await HttpFilesCacheWorker.create();
+  Object? error;
+  try {
+    await worker.run(Job('nonExistentDir234324324234', JobType.put, '123', 'value'));
+  } catch (e) {
+    error = e;
+  }
+  expect(error, isNotNull);
 }
