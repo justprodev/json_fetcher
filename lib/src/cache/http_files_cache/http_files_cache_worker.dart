@@ -37,7 +37,7 @@ class HttpFilesCacheWorker {
   }
 
   /// Spawn new isolate, setup communication and return worker
-  static Future<HttpFilesCacheWorker> create(String path) async {
+  static Future<HttpFilesCacheWorker> create() async {
     // Create a receive port and add its initial message handler.
     final initPort = RawReceivePort();
     final connection = Completer<(ReceivePort, SendPort)>.sync();
@@ -50,7 +50,7 @@ class HttpFilesCacheWorker {
     };
     // Spawn the isolate.
     try {
-      await Isolate.spawn(_startWorker, (initPort.sendPort, path), debugName: 'HttpFilesCacheWorker');
+      await Isolate.spawn(_startWorker, (initPort.sendPort), debugName: 'HttpFilesCacheWorker');
     } on Object {
       initPort.close();
       rethrow;
@@ -61,24 +61,29 @@ class HttpFilesCacheWorker {
     return HttpFilesCacheWorker._(receivePort, sendPort);
   }
 
-  static void _startWorker((SendPort sendPort, String path) message) {
-    final (sendPort, path) = message;
+  /// 1. Sends its own [SendPort] to the main isolate
+  /// 2. Listens for jobs from the main isolate and sends responses
+  static void _startWorker(SendPort sendPort) {
     final receivePort = ReceivePort();
     sendPort.send(receivePort.sendPort);
     receivePort.listen((message) {
       try {
         final job = message as Job;
-        sendPort.send(handleJob(path, job));
+        sendPort.send(handleJob(job));
       } catch (e, trace) {
         sendPort.send(RemoteError(e.toString(), trace.toString()));
       }
     });
   }
 
-  /// IO operations
+  /// Process job and return result
+  ///
+  /// Perform IO operations
   @visibleForTesting
   @pragma('vm:prefer-inline')
-  static Job handleJob(String path, Job job) {
+  static Job handleJob(Job job) {
+    final path = job.path;
+
     switch (job.type) {
       case JobType.put:
         final key = job.key!;
@@ -107,7 +112,7 @@ class HttpFilesCacheWorker {
         final dir = getDirectory(path, key);
         final file = File('${dir.path}/$key');
 
-        if(file.existsSync()) file.deleteSync();
+        if (file.existsSync()) file.deleteSync();
 
         return job;
       case JobType.emptyCache:
@@ -121,16 +126,27 @@ class HttpFilesCacheWorker {
   }
 }
 
+/// A job for worker
+/// See [HttpFilesCacheWorker.handleJob]
 class Job {
+  /// Path to the cache directory
+  final String path;
+
+  /// Type of job
   final JobType type;
+
+  /// Key for the cache entry
   final String? key;
+
+  /// Value for the cache entry
   final String? value;
 
-  const Job(this.type, this.key, [this.value]);
+  const Job(this.path, this.type, this.key, [this.value]);
 
-  Job withValue(String? value) => Job(type, key, value);
+  Job withValue(String? value) => Job(path, type, key, value);
 }
 
+/// Type of job, corresponds to cache operations
 enum JobType { put, peek, delete, emptyCache }
 
 @visibleForTesting

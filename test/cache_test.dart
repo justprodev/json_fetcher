@@ -65,16 +65,16 @@ Future<void> testWorker() async {
 
   for (final type in JobType.values) {
     final job = switch (type) {
-      JobType.put => Job(type, key, value),
-      JobType.peek => Job(type, key),
-      JobType.delete => Job(type, key),
-      JobType.emptyCache => Job(type, null),
+      JobType.put => Job(root.path, type, key, value),
+      JobType.peek => Job(root.path, type, key),
+      JobType.delete => Job(root.path, type, key),
+      JobType.emptyCache => Job(root.path, type, null),
     };
 
-    Job runJob() => HttpFilesCacheWorker.handleJob(root.path, job);
+    Job runJob() => HttpFilesCacheWorker.handleJob(job);
     runPutJob() {
       if (file.existsSync()) file.deleteSync();
-      HttpFilesCacheWorker.handleJob(root.path, Job(JobType.put, key, value));
+      HttpFilesCacheWorker.handleJob(Job(root.path, JobType.put, key, value));
     }
 
     final Job result;

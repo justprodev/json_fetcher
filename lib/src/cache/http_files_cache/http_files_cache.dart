@@ -16,20 +16,24 @@ const subDirPath = '__http_files_cache';
 ///
 /// 1. Each value is stored in a separate file
 /// 2. Using [HttpFilesCacheWorker] to perform IO operations
-/// 3. Keys should be numbers, see [HttpCache.createKey]
+/// 3. Keys should be numbers, see [createKey]
 class HttpFilesCache extends HttpCache {
+  // use only one worker for all instances!
   static late final HttpFilesCacheWorker _worker;
   static Completer? _initializing;
   static bool _isInit = false;
 
+  late final String path;
+
   HttpFilesCache(String path) {
-    path = '$path/$subDirPath';
-    Directory(path).createSync(recursive: true);
+    /// Using subdirectory to avoid conflicts with other files
+    this.path = '$path/$subDirPath';
 
     Future<void> init() async {
       _initializing = Completer();
       try {
-        _worker = await HttpFilesCacheWorker.create(path);
+        await Directory(path).create(recursive: true);
+        _worker = await HttpFilesCacheWorker.create();
         _isInit = true;
         _initializing?.complete();
         _initializing = null;
@@ -38,31 +42,32 @@ class HttpFilesCache extends HttpCache {
       }
     }
 
+    // Creating first instance in the app: start initializing process
     if (!_isInit && _initializing == null) init();
   }
 
   @override
   Future<void> delete(String key) async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(JobType.delete, key));
+    await _worker.run(Job(path, JobType.delete, key));
   }
 
   @override
   Future<String?> peek(String key) async {
     if (_initializing != null) await _initializing!.future;
-    return (await _worker.run(Job(JobType.peek, key))).value;
+    return (await _worker.run(Job(path, JobType.peek, key))).value;
   }
 
   @override
   Future<void> put(String key, String value) async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(JobType.put, key, value));
+    await _worker.run(Job(path, JobType.put, key, value));
   }
 
   @override
   Future<void> emptyCache() async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(JobType.emptyCache, null));
+    await _worker.run(Job(path, JobType.emptyCache, null));
   }
 
   /// This implementation uses FNV-1a hash function of the url + body
