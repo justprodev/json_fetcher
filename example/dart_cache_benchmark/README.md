@@ -1,26 +1,31 @@
 ```
-dart_cache_benchmark % dart bin/dart_cache_benchmark.dart
+dart_cache_benchmark % dart compile exe bin/dart_cache_benchmark.dart
+
+dart_cache_benchmark % bin/dart_cache_benchmark.exe
 
 Key value size: 27.0 KB
 
 HttpHiveCache:
-Put 10000 keys: 1975 ms
-Peek 10000 keys: 1253 ms
+Put 10000 keys: 1919 ms
+Peek 10000 keys: 1418 ms
 crc32: 28265458430000
-Random peek 1000 keys: 119 ms
-Random put 1000 keys: 192 ms
+Random peek 1000 keys: 158 ms
+Random put 1000 keys: 191 ms
 crc32: 28265458430000
-Delete 10000 keys: 2806 ms
-Empty cache: 4 ms
+Delete 10000 keys: 2510 ms
+Empty cache: 3 ms
+Main thread latency: 0.875 ms
+
 
 
 HttpFilesCache:
-Put 10000 keys: 2016 ms
-Peek 10000 keys: 433 ms
+Put 10000 keys: 1849 ms
+Peek 10000 keys: 407 ms
 crc32: 28265458430000
-Random peek 1000 keys: 43 ms
-Random put 1000 keys: 290 ms
+Random peek 1000 keys: 39 ms
+Random put 1000 keys: 257 ms
 crc32: 28265458430000
-Delete 10000 keys: 556 ms
-Empty cache: 0 ms
+Delete 10000 keys: 533 ms
+Empty cache: 2 ms
+Main thread latency: 0.25 ms
 ```
