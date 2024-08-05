@@ -8,31 +8,21 @@
 
 // Created by alex@justprodev.com on 31.01.2024.
 
-import 'dart:convert';
-
 import 'package:http/http.dart';
 
 extension BaseClientExt on Client {
-  /// This is a copy of private method of [BaseClient._sendUnstreamed]
   /// Sends a non-streaming [Request] and returns a non-streaming [Response].
+  /// This is a stripped down copy of the private method [BaseClient._sendUnstreamed]
   Future<Response> sendUnstreamed(
-      String method, Uri url, Map<String, String>? headers,
-      [Object? body, Encoding? encoding]) async {
-    var request = Request(method, url);
+    String method,
+    Uri url,
+    Map<String, String>? headers, [
+    String? body,
+  ]) async {
+    final request = Request(method, url);
 
     if (headers != null) request.headers.addAll(headers);
-    if (encoding != null) request.encoding = encoding;
-    if (body != null) {
-      if (body is String) {
-        request.body = body;
-      } else if (body is List) {
-        request.bodyBytes = body.cast<int>();
-      } else if (body is Map) {
-        request.bodyFields = body.cast<String, String>();
-      } else {
-        throw ArgumentError('Invalid request body "$body".');
-      }
-    }
+    if (body != null) request.body = body;
 
     return Response.fromStream(await send(request));
   }
