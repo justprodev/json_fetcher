@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
             ),
-            ElevatedButton(onPressed: ()=>setState((){}), child: Text('Restart')),
+            ElevatedButton(onPressed: ()=>setState((){}), child: const Text('Restart')),
             const SizedBox(height: 16),
           ],
         ),
