@@ -15,6 +15,7 @@ Future<JsonHttpClient> createClient({
   LoggableHttpClientConfig? config,
   HttpCache? cache,
   Client? rawClient,
+  Future<bool> Function(bool logout)? onExpire,
 }) async {
   var selectedAuthHeaders = authHeaders1;
   config ??= LoggableHttpClientConfig.full();
@@ -22,7 +23,7 @@ Future<JsonHttpClient> createClient({
     LoggableHttpClient(rawClient ?? Client(), Logger((JsonHttpClient).toString()), config: config),
     cache ?? io_cache_impl.createCache('temp'),
     globalHeaders: (_) => selectedAuthHeaders,
-    onExpire: (_) async {
+    onExpire: onExpire ?? (_) async {
       selectedAuthHeaders = authHeaders2;
       return true;
     },
