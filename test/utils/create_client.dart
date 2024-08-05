@@ -14,11 +14,12 @@ Future<JsonHttpClient> createClient({
   Function(String url, Object document)? onFetched,
   LoggableHttpClientConfig? config,
   HttpCache? cache,
+  Client? rawClient,
 }) async {
   var selectedAuthHeaders = authHeaders1;
   config ??= LoggableHttpClientConfig.full();
   final JsonHttpClient client = JsonHttpClient(
-    LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: config),
+    LoggableHttpClient(rawClient ?? Client(), Logger((JsonHttpClient).toString()), config: config),
     cache ?? io_cache_impl.createCache('temp'),
     globalHeaders: (_) => selectedAuthHeaders,
     onExpire: (_) async {

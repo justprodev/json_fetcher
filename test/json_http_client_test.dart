@@ -3,7 +3,9 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 
@@ -25,6 +27,38 @@ void main() {
   test('put', () => testRequest('PUT', body));
   test('delete', () => testRequest('DELETE', null));
   test('patch', () => testRequest('PATCH', body));
+
+  group('errors', () {
+    test('status code', () async {
+      final client = await createClient();
+      server.enqueue(httpCode: 500, body: 'error');
+      JsonFetcherException? exception;
+      try {
+        await client.get(prefix);
+      } on JsonFetcherException catch (e) {
+        exception = e;
+      }
+      expect(exception, isNotNull);
+      expect(exception!.statusCode, 500);
+      expect(exception.body, 'error');
+    });
+
+    test('not reachable', () async {
+      final fastClient = await createClient(
+        rawClient: MockClient((request) {
+          throw SocketException('test');
+        }),
+      );
+      JsonFetcherException? exception;
+      try {
+        await fastClient.get(prefix);
+      } on JsonFetcherException catch (e) {
+        exception = e;
+      }
+      expect(exception, isNotNull);
+      expect(exception!.notReachable, true);
+    });
+  });
 }
 
 Future<void> testRequest(String method, String? body) async {
