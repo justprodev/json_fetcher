@@ -3,7 +3,8 @@
 import 'package:http/http.dart';
 import 'package:json_fetcher/loggable_http_client.dart';
 import 'package:json_fetcher/src/auth_info.dart';
-import 'package:json_fetcher/src/cache/http_cache_io_impl.dart';
+import 'package:json_fetcher/src/cache/http_cache_io_impl.dart' as io_cache_impl;
+import 'package:json_fetcher/src/http_cache.dart';
 import 'package:json_fetcher/src/json_http_client.dart';
 import 'package:logging/logging.dart';
 
@@ -13,12 +14,13 @@ const authHeaders2 = {'authorization': 'Bearer 67890'};
 Future<JsonHttpClient> createClient({
   Function(String url, Object document)? onFetched,
   LoggableHttpClientConfig? config,
+  HttpCache? cache,
 }) async {
   var selectedAuthHeaders = authHeaders1;
   config ??= LoggableHttpClientConfig.full();
   final JsonHttpClient client = JsonHttpClient(
     LoggableHttpClient(Client(), Logger((JsonHttpClient).toString()), config: config),
-    createCache('temp'),
+    cache ?? io_cache_impl.createCache('temp'),
     auth: AuthInfo((_) => selectedAuthHeaders, (_) async {
       selectedAuthHeaders = authHeaders2;
       return true;

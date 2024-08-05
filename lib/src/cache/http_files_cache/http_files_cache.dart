@@ -5,22 +5,25 @@ import 'dart:io';
 
 import 'package:json_fetcher/src/http_cache.dart';
 import 'package:json_fetcher/src/util/fnv1a_hash/fnv1a_hash.dart';
+import 'package:meta/meta.dart';
 
 import 'http_files_cache_worker.dart';
 
-const _subDirPath = '__http_files_cache';
+@visibleForTesting
+const subDirPath = '__http_files_cache';
 
 /// An file-based cache
 ///
 /// 1. Each value is stored in a separate file
 /// 2. Using [HttpFilesCacheWorker] to perform IO operations
+/// 3. Keys should be numbers, see [HttpCache.createKey]
 class HttpFilesCache extends HttpCache {
   static late final HttpFilesCacheWorker _worker;
   static Completer? _initializing;
   static bool _isInit = false;
 
   HttpFilesCache(String path) {
-    path = '$path/$_subDirPath';
+    path = '$path/$subDirPath';
     Directory(path).createSync(recursive: true);
 
     Future<void> init() async {
