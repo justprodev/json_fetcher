@@ -54,9 +54,9 @@ Future<void> testCache(HttpCache impl) async {
 }
 
 Future<void> testWorker() async {
-  final root = Directory('$temp/handle_job')
-    ..deleteSync(recursive: true)
-    ..createSync(recursive: true);
+  final root = Directory('$temp/handle_job');
+  if (root.existsSync()) root.deleteSync(recursive: true);
+  root.createSync(recursive: true);
 
   final key = '123';
   final value = 'value';

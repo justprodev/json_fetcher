@@ -104,9 +104,10 @@ class HttpFilesCacheWorker {
         }
       case JobType.delete:
         final key = job.key!;
-        final Directory dir = getDirectory(path, key);
+        final dir = getDirectory(path, key);
+        final file = File('${dir.path}/$key');
 
-        File('${dir.path}/$key').deleteSync();
+        if(file.existsSync()) file.deleteSync();
 
         return job;
       case JobType.emptyCache:
