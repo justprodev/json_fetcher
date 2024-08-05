@@ -71,7 +71,7 @@ class HttpFilesCacheWorker {
         final job = message as Job;
         sendPort.send(handleJob(job));
       } catch (e, trace) {
-        sendPort.send(RemoteError(e.toString(), trace.toString()));
+        sendPort.send(RemoteError('Error while handling $message - $e', trace.toString()));
       }
     });
   }
@@ -144,6 +144,9 @@ class Job {
   const Job(this.path, this.type, this.key, [this.value]);
 
   Job withValue(String? value) => Job(path, type, key, value);
+
+  @override
+  toString() => 'Job(path: $path, type: $type, key: $key, value: $value)';
 }
 
 /// Type of job, corresponds to cache operations
