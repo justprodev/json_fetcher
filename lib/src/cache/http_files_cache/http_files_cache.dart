@@ -12,31 +12,33 @@ import 'http_files_cache_worker.dart';
 @visibleForTesting
 const subDirPath = '__http_files_cache';
 
+// one worker for all instances!
+late final HttpFilesCacheWorker _worker;
+bool _workerCreated = false;
+
 /// An file-based cache
 ///
 /// 1. Each value is stored in a separate file
 /// 2. Using [HttpFilesCacheWorker] to perform IO operations
 /// 3. Keys should be numbers, see [createKey]
 class HttpFilesCache extends HttpCache {
-  // use only one worker for all instances!
-  static late final HttpFilesCacheWorker _worker;
-  static Completer? _initializing;
-  static bool _isInit = false;
+  Completer? _initializing = Completer();
 
   late final String _path;
 
   /// **[path] must point to an existing writable directory**
-  HttpFilesCache(String path) {
-    /// Using subdirectory to avoid conflicts with other files
-    _path = '$path/$subDirPath';
-
-    if(Directory(_path).existsSync()) Directory(_path).createSync();
-
+  HttpFilesCache(FutureOr<String> path) {
     Future<void> init() async {
-      _initializing = Completer();
       try {
-        _worker = await HttpFilesCacheWorker.create();
-        _isInit = true;
+        /// Using subdirectory to avoid conflicts with other files
+        _path = '${await path}/$subDirPath';
+        if (!Directory(_path).existsSync()) await Directory(_path).create();
+
+        if (!_workerCreated) {
+          _worker = await HttpFilesCacheWorker.create();
+          _workerCreated = true;
+        }
+
         _initializing?.complete();
         _initializing = null;
       } catch (e) {
@@ -44,8 +46,7 @@ class HttpFilesCache extends HttpCache {
       }
     }
 
-    // Creating first instance in the app: start initializing process
-    if (!_isInit && _initializing == null) init();
+    init();
   }
 
   @override

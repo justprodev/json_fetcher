@@ -12,56 +12,54 @@ import '../../http_cache.dart';
 const _boxName = '__hive_json_hive_cache';
 
 class HttpHiveCache extends HttpCache {
-  final String? _path;
   late final LazyBox _cache;
 
-  bool _isInit = false;
-  Future<void>? _initializing;
+  Completer? _initializing = Completer();
 
-  HttpHiveCache(this._path);
-
-  Future<void> _init() async {
-    if (_initializing == null) {
-      // start initializing process
-      Future<void> init() async {
-        if (_isInit) return; // for any case
-        Hive.init(_path);
+  HttpHiveCache(FutureOr<String>? path) {
+    Future<void> init() async {
+      Hive.init(await path);
+      try {
+        _cache = await Hive.openLazyBox(_boxName);
+        _initializing?.complete();
+        _initializing = null;
+      } catch (e) {
+        // try to delete the box and open it again
         try {
-          _cache = await Hive.openLazyBox(_boxName);
-        } catch (e) {
           await Hive.deleteBoxFromDisk(_boxName);
           _cache = await Hive.openLazyBox(_boxName);
+          _initializing?.complete();
+          _initializing = null;
+        } catch (ee) {
+          _initializing?.completeError(ee);
         }
-        _isInit = true; // complete
-        _initializing = null;
       }
-
-      _initializing = init();
     }
-    await _initializing; // wait the new one or already exists process
+
+    init();
   }
 
   @override
   Future<void> delete(String key) async {
-    if (!_isInit) await _init();
+    if (_initializing != null) await _initializing!.future;
     await _cache.delete(key);
   }
 
   @override
   Future<void> emptyCache() async {
-    if (!_isInit) await _init();
+    if (_initializing != null) await _initializing!.future;
     await _cache.clear();
   }
 
   @override
   Future<String?> peek(String key) async {
-    if (!_isInit) await _init();
+    if (_initializing != null) await _initializing!.future;
     return await _cache.get(key);
   }
 
   @override
   Future<void> put(String key, String json) async {
-    if (!_isInit) await _init();
+    if (_initializing != null) await _initializing!.future;
     await _cache.put(key, json);
   }
 

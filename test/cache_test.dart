@@ -21,14 +21,19 @@ void main() {
 
   group('io', () {
     group('worker', () {
-      test('handleJob', () => workerHandleJob());
-      test('error', () => workerError());
+      test('handleJob', () => testWorkerHandleJob());
+      test('error', () => testWorkerError());
     });
 
     test('cache', () async {
       final cache = io_cache_impl.createCache(temp);
       await testCache(cache);
     });
+  });
+
+  group('path by future', () {
+    test('web', () => testCreateCacheWithPathByFuture((path) => web_cache_impl.createCache(path)));
+    test('io', () => testCreateCacheWithPathByFuture((path) => io_cache_impl.createCache(path)));
   });
 }
 
@@ -54,7 +59,7 @@ Future<void> testCache(HttpCache impl) async {
   }
 }
 
-Future<void> workerHandleJob() async {
+Future<void> testWorkerHandleJob() async {
   final root = Directory('$temp/handle_job');
   if (root.existsSync()) root.deleteSync(recursive: true);
   root.createSync(recursive: true);
@@ -109,7 +114,7 @@ Future<void> workerHandleJob() async {
   }
 }
 
-Future<void> workerError() async {
+Future<void> testWorkerError() async {
   final worker = await HttpFilesCacheWorker.create();
   Object? error;
   try {
@@ -118,4 +123,14 @@ Future<void> workerError() async {
     error = e;
   }
   expect(error, isNotNull);
+}
+
+Future<void> testCreateCacheWithPathByFuture(HttpCache Function(Future<String> path) createCache) async {
+  final Future<String> path = Future.delayed(Duration(milliseconds: 10), () => temp);
+  final stopwatch = Stopwatch()..start();
+  // we providing path here, because of unit test in Dart VM
+  final cache = createCache(path);
+  await cache.put('123', 'value');
+  expect(stopwatch.elapsedMilliseconds, greaterThan(10));
+  stopwatch.stop();
 }
