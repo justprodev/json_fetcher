@@ -23,8 +23,9 @@ void main() {
 
   group('io', () {
     group('worker', () {
+      test('isolate', () => testWorkerIsolate());
       test('handleJob', () => testWorkerHandleJob());
-      test('error', () => testWorkerError());
+      test('error', () => testWorkerErrors());
     });
 
     test('cache', () async {
@@ -123,15 +124,26 @@ Future<void> testWorkerHandleJob() async {
   }
 }
 
-Future<void> testWorkerError() async {
+Future<void> testWorkerErrors() async {
   final worker = await HttpFilesCacheWorker.create();
   Object? error;
+  final dir = Directory('$temp/nonExistentDir234324324234');
+  if(dir.existsSync()) dir.deleteSync(recursive: true);
+  final job = Job(dir.path, JobType.put, '123', 'value');
   try {
-    await worker.run(Job('nonExistentDir234324324234', JobType.put, '123', 'value'));
+    await worker.run(job);
   } catch (e) {
     error = e;
   }
   expect(error, isNotNull);
+  error = null;
+  dir.createSync(recursive: true);
+  try {
+    await worker.run(job);
+  } catch (e) {
+    error = e;
+  }
+  expect(error, isNull);
 }
 
 Future<void> testCreateCacheWithPathByFuture(HttpCache Function(Future<String> path) createCache) async {
@@ -142,4 +154,18 @@ Future<void> testCreateCacheWithPathByFuture(HttpCache Function(Future<String> p
   await cache.put('123', 'value');
   expect(stopwatch.elapsedMilliseconds, greaterThan(10));
   stopwatch.stop();
+}
+
+Future<void> testWorkerIsolate() async {
+  final path = '$temp/isolate';
+  final dir = Directory(path);
+  if (dir.existsSync()) dir.deleteSync(recursive: true);
+  dir.createSync(recursive: true);
+  final worker = await HttpFilesCacheWorker.create();
+  final keys = List.generate(10, (index) => index.toString());
+  await Future.wait(keys.map((key) => worker.run(Job(path, JobType.put, key, key))));
+  await Future.wait(keys.map((key) async {
+    expect((await worker.run(Job(path, JobType.peek, key))).value, key);
+    return;
+  }));
 }

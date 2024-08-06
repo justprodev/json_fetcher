@@ -14,6 +14,9 @@ class HttpFilesCacheWorker {
   final SendPort _commands;
   Completer<Job>? _response;
 
+  // create lock in open state to avoid null value
+  Completer _lock = Completer.sync()..complete();
+
   HttpFilesCacheWorker._(ReceivePort responses, this._commands) {
     responses.listen((message) {
       if (message is Job) {
@@ -27,13 +30,31 @@ class HttpFilesCacheWorker {
   /// Send job to worker and wait for response
   @pragma('vm:prefer-inline')
   Future<Job> run(Job job) async {
-    // wait previous job to complete
-    await _response?.future;
+    // wait current job to complete
+    final jobLock = _lock;
+    await jobLock.future;
 
-    // prepare new response
-    _response = Completer();
-    _commands.send(job);
-    return _response!.future;
+    // another job acquired the lock, re-run job
+    // in other words, we will restart the task until _lock changes
+    if (_lock != jobLock) {
+      return run(job);
+    }
+
+    // acquire lock
+    _lock = Completer();
+
+    try {
+      // prepare new response
+      _response = Completer();
+      _commands.send(job);
+      // we should await here by self, because caller of the run() may not await the result
+      final result = await _response!.future;
+      return result;
+    } finally {
+      _response = null;
+      // release lock
+      _lock.complete();
+    }
   }
 
   /// Spawn new isolate, setup communication and return worker
