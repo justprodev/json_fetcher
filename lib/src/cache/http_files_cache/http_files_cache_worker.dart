@@ -1,6 +1,7 @@
 // Created by alex@justprodev.com on 05.08.2024.
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -12,17 +13,19 @@ import 'package:meta/meta.dart';
 /// 2. Only one job will be processed at a time, other jobs will wait
 class HttpFilesCacheWorker {
   final SendPort _commands;
-  Completer<Job>? _response;
 
-  // create lock in open state to avoid null value
-  Completer _lock = Completer.sync()..complete();
+  final _input = HashMap<_JobKey, Completer<Job>>();
 
   HttpFilesCacheWorker._(ReceivePort responses, this._commands) {
     responses.listen((message) {
-      if (message is Job) {
-        _response?.complete(message);
-      } else if (message is RemoteError) {
-        _response?.completeError(message);
+      if (message is _JobResult) {
+        final key = _JobKey.fromJob(message.job);
+
+        if (message.error == null) {
+          _input[key]?.complete(message.job);
+        } else {
+          _input[key]?.completeError(message.error!, message.trace);
+        }
       }
     });
   }
@@ -30,30 +33,23 @@ class HttpFilesCacheWorker {
   /// Send job to worker and wait for response
   @pragma('vm:prefer-inline')
   Future<Job> run(Job job) async {
-    // wait current job to complete
-    final jobLock = _lock;
-    await jobLock.future;
+    final key = _JobKey.fromJob(job);
+    final current = _input[key];
 
-    // another job acquired the lock, re-run job
-    // in other words, we will restart the task until _lock changes
-    if (_lock != jobLock) {
-      return run(job);
-    }
+    // wait current job to complete, ignore the result and errors
+    if (current != null) await current.future.whenComplete(Future.value);
 
-    // acquire lock
-    _lock = Completer();
-
+    final completer = Completer<Job>();
+    _input[key] = completer;
+    _commands.send(job);
     try {
-      // prepare new response
-      _response = Completer();
-      _commands.send(job);
-      // we should await here by self, because caller of the run() may not await the result
-      final result = await _response!.future;
+      // we prefer await here by self, because caller of the run() may not await the result
+      // we need to ensure that the job is completed to remove it from the input map
+      // to avoid memory leaks, for simplicity, etc
+      final result = await completer.future;
       return result;
     } finally {
-      _response = null;
-      // release lock
-      _lock.complete();
+      _input.remove(key);
     }
   }
 
@@ -88,11 +84,13 @@ class HttpFilesCacheWorker {
     final receivePort = ReceivePort();
     sendPort.send(receivePort.sendPort);
     receivePort.listen((message) {
-      try {
-        final job = message as Job;
-        sendPort.send(handleJob(job));
-      } catch (e, trace) {
-        sendPort.send(RemoteError('Error while handling $message - $e', trace.toString()));
+      if (message is Job) {
+        try {
+          final result = handleJob(message);
+          sendPort.send(_JobResult(result));
+        } catch (e, trace) {
+          sendPort.send(_JobResult(message, e, trace));
+        }
       }
     });
   }
@@ -172,6 +170,33 @@ class Job {
 
 /// Type of job, corresponds to cache operations
 enum JobType { put, peek, delete, emptyCache }
+
+class _JobKey {
+  final String path;
+  final String? key;
+  final JobType type;
+
+  const _JobKey(this.path, this.key, this.type);
+
+  factory _JobKey.fromJob(Job job) => _JobKey(job.path, job.key, job.type);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _JobKey && other.path == path && other.key == key && other.type == type;
+  }
+
+  @override
+  int get hashCode => path.hashCode ^ key.hashCode ^ type.hashCode;
+}
+
+class _JobResult {
+  final Job job;
+  final Object? error;
+  final StackTrace? trace;
+
+  const _JobResult(this.job, [this.error, this.trace]);
+}
 
 @visibleForTesting
 @pragma('vm:prefer-inline')
