@@ -8,12 +8,9 @@ import 'package:json_fetcher/src/cache/http_hive_cache/http_hive_cache.dart';
 
 void main() async {
   final temp = 'temp';
-  final results = await runBenchmark([
-    HttpHiveCache(temp),
-    HttpFilesCache(temp),
-  ]);
-
-  print(results);
+  await for (final s in runBenchmark([HttpHiveCache(temp), HttpFilesCache(temp)])) {
+    stdout.write(s);
+  }
 
   // just wait for some last operations
   await Future.delayed(Duration(seconds: 1));

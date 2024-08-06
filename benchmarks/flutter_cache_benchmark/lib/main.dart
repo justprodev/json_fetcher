@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:flutter/material.dart';
 
 import 'benchmark.dart';
@@ -33,36 +36,144 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late ValueNotifier<bool> started;
+  final stopwatch = Stopwatch();
+  late Timer timer;
+  late ValueNotifier<int> minutes;
+  late ValueNotifier<int> seconds;
+  Stream<String>? benchmark;
+
+  @override
+  void initState() {
+    started = ValueNotifier(false);
+    seconds = ValueNotifier(0);
+    minutes = ValueNotifier(0);
+    super.initState();
+    start();
+  }
+
+  @override
+  void dispose() {
+    started.dispose();
+    minutes.dispose();
+    seconds.dispose();
+    timer.cancel();
+    super.dispose();
+  }
+
+  void start() {
+    if (started.value) return;
+
+    started.value = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        stopwatch
+          ..start()
+          ..reset();
+        minutes.value = 0;
+        seconds.value = 0;
+        timer = Timer.periodic(const Duration(seconds: 1), (_) {
+          final duration = stopwatch.elapsed;
+          minutes.value = duration.inMinutes;
+          seconds.value = duration.inSeconds.remainder(60);
+        });
+        benchmark = runBenchmark();
+        setState(() {});
+      } catch (_) {
+        stop();
+      }
+    });
+  }
+
+  void stop() {
+    benchmark = null;
+    started.value = false;
+    stopwatch.stop();
+    timer.cancel();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
+        title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              child: FutureBuilder(
-                future: runBenchmark(),
-                builder: (_, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.done) {
-                    return Text(
-                      snapshot.data?.toString() ?? snapshot.error.toString(),
-                    );
-                  }
-                  return const Center(child: CircularProgressIndicator());
-                },
-              ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(widget.title),
             ),
-            ElevatedButton(onPressed: ()=>setState((){}), child: const Text('Restart')),
-            const SizedBox(height: 16),
+            ValueListenableBuilder(
+              valueListenable: minutes,
+              builder: (_, int value, __) {
+                return AnimatedFlipCounter(
+                  textStyle: const TextStyle(color: Colors.white),
+                  duration: const Duration(milliseconds: 100),
+                  value: value,
+                );
+              },
+            ),
+            const Text(':', style: TextStyle(color: Colors.white)),
+            ValueListenableBuilder(
+              valueListenable: seconds,
+              builder: (_, int value, __) {
+                return AnimatedFlipCounter(
+                  textStyle: const TextStyle(color: Colors.white),
+                  wholeDigits: 2,
+                  duration: const Duration(milliseconds: 100),
+                  value: value,
+                );
+              },
+            ),
           ],
         ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          Expanded(
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                primary: true,
+                child: Center(
+                  child: StreamBuilder(
+                    stream: benchmark,
+                    builder: (_, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) => stop());
+                      }
+
+                      final result = snapshot.data?.toString() ?? snapshot.error?.toString();
+                      if (result != null) {
+                        return SelectableText(result);
+                      }
+                      return const CircularProgressIndicator();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ValueListenableBuilder(
+              valueListenable: started,
+              builder: (_, bool startedValue, __) {
+                return ElevatedButton(
+                  onPressed: !startedValue ? start : null,
+                  child: const Text('Restart'),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 }
-

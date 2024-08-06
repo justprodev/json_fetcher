@@ -8,15 +8,23 @@ import 'package:dart_cache_benchmark/benchmark.dart' as dart_cache_benchmark;
 import 'package:json_fetcher/src/cache/http_files_cache/http_files_cache.dart';
 import 'package:json_fetcher/src/cache/http_hive_cache/http_hive_cache.dart';
 
-Future<String> runBenchmark() async {
+Stream<String> runBenchmark() async* {
+  String result = '';
+  final Stream<String> stream;
+
   if(kIsWeb) {
-    return await dart_cache_benchmark.runBenchmark([HttpHiveCache(null)]);
+    stream = dart_cache_benchmark.runBenchmark([HttpHiveCache(null)]);
   } else {
     final path = await getApplicationCacheDirectory();
 
-    return await dart_cache_benchmark.runBenchmark([
+    stream =  dart_cache_benchmark.runBenchmark([
       HttpHiveCache(path.path),
       HttpFilesCache(path.path),
     ]);
+  }
+
+  await for (final s in stream) {
+    result += s;
+    yield result;
   }
 }
