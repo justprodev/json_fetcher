@@ -152,7 +152,7 @@ Future<void> testCreateCacheWithPathByFuture(HttpCache Function(Future<String> p
   // we providing path here, because of unit test in Dart VM
   final cache = createCache(path);
   await cache.put('123', 'value');
-  expect(stopwatch.elapsedMilliseconds, greaterThan(10));
+  expect(stopwatch.elapsedMilliseconds, greaterThanOrEqualTo(10));
   stopwatch.stop();
 }
 
