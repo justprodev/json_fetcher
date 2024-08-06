@@ -10,6 +10,7 @@ import 'package:json_fetcher/src/cache/http_cache_web_impl.dart' as web_cache_im
 import 'package:json_fetcher/src/cache/http_files_cache/http_files_cache.dart';
 import 'package:json_fetcher/src/cache/http_files_cache/http_files_cache_worker.dart';
 import 'package:json_fetcher/src/http_cache.dart';
+import 'package:json_fetcher/src/util/fnv1a_hash/fnv1a_hash.dart';
 import 'package:test/test.dart';
 
 const temp = 'temp';
@@ -67,6 +68,14 @@ Future<void> testCache(HttpCache impl) async {
   for (final key in keys) {
     expect(await impl.peek(key), null);
   }
+
+  // getKey
+  final urlKey = impl.createKey('url');
+  expect(urlKey, fastHash('url'));
+  await impl.put(urlKey, 'value');
+  expect(await impl.peek(urlKey), 'value');
+  await impl.evict('url');
+  expect(await impl.peek(urlKey), null);
 }
 
 Future<void> testWorkerHandleJob() async {
@@ -168,4 +177,16 @@ Future<void> testWorkerIsolate() async {
     expect((await worker.run(Job(path, JobType.peek, key))).value, key);
     return;
   }));
+
+  // test for FIFO
+  final values = <String>[];
+  final futures = keys.map((key) async {
+    return worker.run(Job(path, JobType.peek, key));
+  });
+  await Future.wait(futures).then((jobs) {
+    for (final job in jobs) {
+      values.add(job.value!);
+    }
+  });
+  expect(values, keys);
 }
