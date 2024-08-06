@@ -7,6 +7,8 @@ export 'src/json_http_client.dart';
 export 'src/json_fetcher_exception.dart';
 export 'src/http_cache.dart';
 
+import 'dart:async';
+
 import 'src/http_cache.dart';
 
 import 'src/cache/http_cache_web_impl.dart' if (dart.library.io) 'src/cache/http_cache_io_impl.dart' as impl;
@@ -14,4 +16,4 @@ import 'src/cache/http_cache_web_impl.dart' if (dart.library.io) 'src/cache/http
 /// Creates a cache for [JsonHttpClient]
 ///
 /// [path] - path to the cache directory (Not needed for web)
-HttpCache createCache([String? path]) => impl.createCache(path);
+HttpCache createCache([FutureOr<String>? path]) => impl.createCache(path);

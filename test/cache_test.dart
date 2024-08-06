@@ -4,8 +4,10 @@
 
 import 'dart:io';
 
+import 'package:json_fetcher/json_fetcher.dart' as general show createCache;
 import 'package:json_fetcher/src/cache/http_cache_io_impl.dart' as io_cache_impl;
 import 'package:json_fetcher/src/cache/http_cache_web_impl.dart' as web_cache_impl;
+import 'package:json_fetcher/src/cache/http_files_cache/http_files_cache.dart';
 import 'package:json_fetcher/src/cache/http_files_cache/http_files_cache_worker.dart';
 import 'package:json_fetcher/src/http_cache.dart';
 import 'package:test/test.dart';
@@ -34,6 +36,13 @@ void main() {
   group('path by future', () {
     test('web', () => testCreateCacheWithPathByFuture((path) => web_cache_impl.createCache(path)));
     test('io', () => testCreateCacheWithPathByFuture((path) => io_cache_impl.createCache(path)));
+  });
+
+  test('general cache creation', () {
+    final cache = general.createCache(Future.value(temp));
+
+    // we on dart:io by the way
+    expect(cache, isA<HttpFilesCache>());
   });
 }
 
