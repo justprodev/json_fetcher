@@ -2,7 +2,9 @@
 
 import 'constants_web.dart' if (dart.library.io) 'constants_mobile.dart';
 
-/// FNV-1a 64bit hash algorithm optimized for Dart Strings
+/// FNV-1a
+///
+/// 32-bit version on Web and 64-bit version on other platforms
 String fastHash(String string) {
   int hash = magic1;
 

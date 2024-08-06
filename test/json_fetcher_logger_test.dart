@@ -5,17 +5,15 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:json_fetcher/loggable_http_client.dart';
 import 'package:logging/logging.dart';
 
 import 'utils/create_client.dart';
-import 'utils/fake_path_provider.dart';
 import 'utils/mock_web_server.dart';
 
 void main() {
-  setUpFakePathProvider();
   setUpMockWebServer();
 
   final r = Random();
