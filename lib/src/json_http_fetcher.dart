@@ -3,7 +3,6 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'package:json_fetcher/src/util/future.dart';
 import 'package:meta/meta.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_client.dart';
@@ -70,7 +69,7 @@ abstract class JsonHttpFetcher<T> {
       if (cachedString != onlineString) {
         // don't wait writing to cache
         // handle errors if onError provided
-        _client.cache.put(key, onlineString).catchErrors(_client.onError);
+        _client.cache.put(key, onlineString).catchError(_client.onError);
 
         final document = await parse(onlineString);
         // drop error because we have valid document
@@ -90,7 +89,7 @@ abstract class JsonHttpFetcher<T> {
       // throw errors only if we have no valid document from cache
       // or we have to throw errors even if cache is exists
       if (cachedDocument == null || allowErrorWhenCacheExists) {
-        _client.onError?.call(error, error.trace);
+        _client.onError(error, error.trace);
         yield* Stream.error(error);
       }
     }

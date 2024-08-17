@@ -7,6 +7,7 @@ import 'dart:io' show HttpHeaders, HttpException;
 
 import 'package:http/http.dart' as http;
 import 'package:json_fetcher/src/util/http.dart';
+import 'package:logging/logging.dart';
 
 import 'http_cache.dart';
 import 'json_fetcher_exception.dart';
@@ -32,8 +33,9 @@ class JsonHttpClient {
   /// can be used to directly control the cache (i.e. [HttpCache.emptyCache]/[HttpCache.evict])
   final HttpCache cache;
 
-  // to catch all errors
-  final Function(Object error, StackTrace? trace)? onError;
+  /// Catch all errors
+  /// By default, it just logs errors using [Logger]
+  final Function(Object error, StackTrace? trace) onError;
 
   /// called when new document came from network and parsed
   final Function(String url, Object document)? onFetched;
@@ -56,7 +58,7 @@ class JsonHttpClient {
     this.cache, {
     this.globalHeaders,
     this.onExpire,
-    this.onError,
+    this.onError = _defaultOnError,
     this.onFetched,
   });
 
@@ -147,7 +149,7 @@ class JsonHttpClient {
         String message = 'Error while $method $url';
         if (response != null) message += ': code=${response.statusCode} body=${response.body}';
         final error = JsonFetcherException(url, message, e, response: response, trace: trace);
-        onError?.call(error, trace);
+        onError(error, trace);
         throw error;
       }
     };
@@ -176,4 +178,6 @@ class JsonHttpClient {
   }
 
   Future<bool>? _onExpireFuture;
+
+  static void _defaultOnError(Object error, StackTrace? trace) => Logger('JsonHttpClient').severe('', error, trace);
 }
