@@ -8,8 +8,17 @@ import 'package:meta/meta.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_client.dart';
 
+/// Base class for implementing fetchers
 ///
+/// Example:
+///```dart
+/// class UserFetcher extends JsonHttpFetcher<User> {
+///   const UserFetcher(super.client);
 ///
+///   @override
+///   Future<User> parse(String source) async => User.fromJson(json.decode(source))!;
+/// }
+///```
 ///
 abstract class JsonHttpFetcher<T> {
   final JsonHttpClient _client;
