@@ -112,7 +112,7 @@ class JsonHttpClient {
         if (globalHeaders != null) request.headers.addAll(globalHeaders!(url));
         return await _client.send(request).then(http.Response.fromStream);
       } else {
-        final Map<String, String> h = {"Content-Type": "application/json"};
+        final Map<String, String> h = {HttpHeaders.contentTypeHeader: "application/json"};
         if (globalHeaders != null) h.addAll(globalHeaders!(url));
         if (headers != null) h.addAll(headers);
         return _client.sendUnstreamed(method, Uri.parse(url), h, json);

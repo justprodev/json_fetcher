@@ -4,12 +4,21 @@
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'dart:io' show HttpHeaders;
+
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
+@visibleForTesting
 const longBodyLength = 100000; // 100kB
+@visibleForTesting
 const longJsonFieldLength = 10000; // 10kB
+@visibleForTesting
 const normalJsonFieldLength = 1000; // 1kB
+
+@visibleForTesting
+const threeDotsString = '...';
 
 /// utility for logging HTTP requests/responses
 class LoggableHttpClient extends BaseClient {
@@ -29,7 +38,7 @@ class LoggableHttpClient extends BaseClient {
     String s = "${request.method} ${request.url} -->";
     s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(request.headers) : request.headers}";
     if (config.logInputBody && request is Request && request.body.isNotEmpty) {
-      s += "\nbody: ${await _smartCut(request.headers['Content-Type'], request.body)}";
+      s += "\nbody: ${await _smartCut(request.headers[HttpHeaders.contentTypeHeader], request.body)}";
     }
     _logger.info(s);
 
@@ -41,8 +50,7 @@ class LoggableHttpClient extends BaseClient {
     if (request is Request || request is MultipartRequest) {
       final List<int> bytes = await response.stream.toBytes();
       if (config.logOutputBody || response.statusCode >= 400) {
-        s +=
-            "\nbody: ${await _smartCut(response.headers['Content-Type'] ?? response.headers['content-type'], utf8.decode(bytes))}";
+        s += "\nbody: ${await _smartCut(request.headers[HttpHeaders.contentTypeHeader], utf8.decode(bytes))}";
       }
       _logger.info(s);
 
@@ -61,7 +69,9 @@ class LoggableHttpClient extends BaseClient {
   }
 
   Map<String, String> _hideAuthorization(Map<String, String> headers) {
-    final entries = headers.entries.map((e) => e.key.toLowerCase() == 'authorization' ? MapEntry(e.key, '...') : e);
+    final entries = headers.entries.map(
+      (e) => e.key.toLowerCase() == 'authorization' ? MapEntry(e.key, threeDotsString) : e,
+    );
     return Map.fromEntries(entries);
   }
 
@@ -71,7 +81,7 @@ class LoggableHttpClient extends BaseClient {
       if (contentType?.contains('/json') == true) {
         return Isolate.run(() => _smartCutJson(body));
       } else {
-        return "${body.substring(0, longBodyLength)}...";
+        return "${body.substring(0, longBodyLength)}$threeDotsString";
       }
     } else {
       return body;
@@ -84,7 +94,7 @@ class LoggableHttpClient extends BaseClient {
       (match) {
         final field = match.group(0) ?? '';
         if (field.length > longJsonFieldLength) {
-          return '${field.substring(0, normalJsonFieldLength ~/ 2)}...${field.substring(field.length - normalJsonFieldLength ~/ 2)}';
+          return '${field.substring(0, normalJsonFieldLength ~/ 2)}$threeDotsString${field.substring(field.length - normalJsonFieldLength ~/ 2)}';
         } else {
           return field;
         }

@@ -157,6 +157,7 @@ Future<void> testRequest(String method, String? body) async {
   expect(r, equals(generateTypicals([typicalData1])));
   var request = server.takeRequest();
   if (body != null) expect(request.body, body);
+  expect(request.headers[HttpHeaders.contentTypeHeader], startsWith('application/json'));
   expect(request.method, method.toUpperCase());
   expect(request.headers['test'], headers['test']);
   expect(request.headers['test2'], headers['test2']);
