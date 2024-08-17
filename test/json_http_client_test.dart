@@ -8,6 +8,8 @@ import 'dart:io';
 import 'package:http/http.dart';
 import 'package:http/testing.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:json_fetcher/loggable_http_client.dart';
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 
@@ -124,6 +126,14 @@ void main() {
     expect(body.files[0].contentType.mimeType, 'image/jpeg');
     expect(body.fields['field'], 'value');
   });
+
+  test('close', () async {
+    final delegate = TestCloseClient();
+    final client = LoggableHttpClient(delegate, Logger.root);
+    expect(delegate.closed, false);
+    client.close();
+    expect(delegate.closed, true);
+  });
 }
 
 Future<void> testRequest(String method, String? body) async {
@@ -175,4 +185,13 @@ Future<void> testRequest(String method, String? body) async {
   expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
 // headers after 'refreshToken' contains authHeaders2
   expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
+}
+
+class TestCloseClient extends MockClient {
+  bool closed = false;
+
+  TestCloseClient() : super((_) async => Future.value(Response('', 200)));
+
+  @override
+  close() => closed = true;
 }
