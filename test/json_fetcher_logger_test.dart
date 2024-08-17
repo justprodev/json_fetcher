@@ -2,10 +2,12 @@
 // All rights reserved. Use of this source code is governed by a
 // MIT License that can be found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:json_fetcher/src/http_logger.dart';
 import 'package:test/test.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:json_fetcher/loggable_http_client.dart';
@@ -31,6 +33,7 @@ void main() {
       // post big json
       server.enqueue(body: bigJson);
       int bodyPresentInLogs = 0;
+      final (request, response) = (Completer(), Completer());
       final subs = Logger.root.onRecord.listen((record) {
         int i = record.message.indexOf('{ "data');
         if (i > 0) {
@@ -50,9 +53,12 @@ void main() {
 
           bodyPresentInLogs++;
         }
+        !request.isCompleted ? request.complete() : response.complete();
       });
 
       await client.post('${prefix}a', bigJson);
+
+      await response.future; // request & response were logged
 
       expect(bodyPresentInLogs, 2, reason: 'Body is not fully present in logs');
 
@@ -68,6 +74,7 @@ void main() {
       // post big plain
       server.enqueue(body: bigPlain);
       int bodyPresentInLogs = 0;
+      final (request, response) = (Completer(), Completer());
       final subs = Logger.root.onRecord.listen((record) {
         final ss = record.message.split('body: ');
         if (ss.length > 1) {
@@ -78,9 +85,12 @@ void main() {
           expect(bigPlain.length > cut.length, true);
           bodyPresentInLogs++;
         }
+        !request.isCompleted ? request.complete() : response.complete();
       });
 
       await client.post('${prefix}a', bigPlain, headers: {HttpHeaders.contentTypeHeader: 'text/plain'});
+
+      await response.future; // request & response were logged
 
       expect(bodyPresentInLogs, 2, reason: 'Body is not fully present in logs');
 
