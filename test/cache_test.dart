@@ -16,12 +16,6 @@ import 'package:test/test.dart';
 const temp = 'temp';
 
 void main() {
-  test('web', () async {
-    // we providing path here, because of unit test in Dart VM
-    final cache = web_cache_impl.createCache(temp);
-    await testCache(cache);
-  });
-
   group('io', () {
     group('worker', () {
       test('isolate', () => testWorkerIsolate());
@@ -33,11 +27,30 @@ void main() {
       final cache = io_cache_impl.createCache(temp);
       await testCache(cache);
     });
+
+    test('path by future', () => testCreateCacheWithPathByFuture((path) => io_cache_impl.createCache(path)));
+
+    test('init error', () async {
+      Object? error;
+      final file = File('$temp/file');
+      file.createSync(recursive: true);
+      final cache = HttpFilesCache(file.path);
+      try {
+        await cache.get('123');
+      } catch (e) {
+        error = e;
+      }
+      expect(error, isA<FileSystemException>());
+    });
   });
 
-  group('path by future', () {
-    test('web', () => testCreateCacheWithPathByFuture((path) => web_cache_impl.createCache(path)));
-    test('io', () => testCreateCacheWithPathByFuture((path) => io_cache_impl.createCache(path)));
+  group('web', () {
+    // we providing path here, because of unit test in Dart VM
+    test('cache', () async {
+      final cache = web_cache_impl.createCache(temp);
+      await testCache(cache);
+    });
+    test('path by future', () => testCreateCacheWithPathByFuture((path) => web_cache_impl.createCache(path)));
   });
 
   test('general cache creation', () {
