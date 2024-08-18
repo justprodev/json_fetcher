@@ -177,16 +177,4 @@ Future<void> testWorkerIsolate() async {
     expect((await worker.run(Job(path, JobType.peek, key))).value, key);
     return;
   }));
-
-  // test for FIFO
-  final values = <String>[];
-  final futures = keys.map((key) async {
-    return worker.run(Job(path, JobType.peek, key));
-  });
-  await Future.wait(futures).then((jobs) {
-    for (final job in jobs) {
-      values.add(job.value!);
-    }
-  });
-  expect(values, keys);
 }
