@@ -16,6 +16,7 @@ Future<JsonHttpClient> createClient({
   HttpCache? cache,
   Client? rawClient,
   Future<bool> Function(bool logout)? onExpire,
+  Function(Object error, StackTrace? trace)? onError,
 }) async {
   var selectedAuthHeaders = authHeaders1;
   config ??= LoggableHttpClientConfig.full();
@@ -28,7 +29,7 @@ Future<JsonHttpClient> createClient({
       return true;
     },
     onFetched: onFetched,
-    onError: (e, t) => Logger.root.severe('Error in JsonHttpClient: $e', e, t),
+    onError: onError ?? (e, t) => Logger.root.severe('Error in JsonHttpClient: $e', e, t),
   );
   await client.cache.emptyCache();
   return client;

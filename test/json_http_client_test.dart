@@ -14,6 +14,7 @@ import 'package:test/test.dart';
 import 'package:json_fetcher/json_fetcher.dart';
 
 import 'utils/create_client.dart';
+import 'utils/fake_cache.dart';
 import 'utils/mock_web_server.dart';
 import 'utils/typicals.dart';
 
@@ -32,37 +33,7 @@ void main() {
   test('delete', () => testRequest('DELETE', null));
   test('patch', () => testRequest('PATCH', body));
 
-  group('errors', () {
-    test('status code', () async {
-      final client = await createClient();
-      server.enqueue(httpCode: 500, body: 'error');
-      JsonFetcherException? exception;
-      try {
-        await client.get(prefix);
-      } on JsonFetcherException catch (e) {
-        exception = e;
-      }
-      expect(exception, isNotNull);
-      expect(exception!.statusCode, 500);
-      expect(exception.body, 'error');
-    });
-
-    test('not reachable', () async {
-      final fastClient = await createClient(
-        rawClient: MockClient((request) {
-          throw SocketException('test');
-        }),
-      );
-      JsonFetcherException? exception;
-      try {
-        await fastClient.get(prefix);
-      } on JsonFetcherException catch (e) {
-        exception = e;
-      }
-      expect(exception, isNotNull);
-      expect(exception!.notReachable, true);
-    });
-  });
+  group('errors', errorsGroup);
 
   group('logout', () {
     test('manual', () async {
@@ -185,6 +156,63 @@ Future<void> testRequest(String method, String? body) async {
   expect(server.takeRequest().headers['authorization'], authHeaders1['authorization']);
 // headers after 'refreshToken' contains authHeaders2
   expect(server.takeRequest().headers['authorization'], authHeaders2['authorization']);
+}
+
+errorsGroup() {
+  (Object, StackTrace)? error;
+  Future<JsonHttpClient> createErrorClient(Client rawClient) async {
+    error = null;
+    return JsonHttpClient(
+      rawClient,
+      FakeCache(),
+      onError: (e, t) => error = (e, t!),
+    );
+  }
+
+  test('status code', () async {
+    final client = await createErrorClient(
+      MockClient((_) => Future.value(Response('error', 500))),
+    );
+    JsonFetcherException? exception;
+    try {
+      await client.get(prefix);
+    } on JsonFetcherException catch (e) {
+      exception = e;
+    }
+    expect(exception!.statusCode, 500);
+    expect(exception.body, 'error');
+    expect(error!.$1, exception);
+    expect(error!.$2, exception.trace!);
+  });
+
+  test('not reachable', () async {
+    final fastClient = await createErrorClient(
+      MockClient((request) {
+        throw SocketException('test');
+      }),
+    );
+    JsonFetcherException? exception;
+    try {
+      await fastClient.get(prefix);
+    } on JsonFetcherException catch (e) {
+      exception = e;
+    }
+    expect(exception!.notReachable, true);
+    expect(error!.$1, exception);
+    expect(error!.$2, exception.trace!);
+  });
+
+  test('default onError', () async {
+    LogRecord? record;
+    final client = JsonHttpClient(MockClient((_) => throw Exception('test')), FakeCache());
+    final subs = Logger.root.onRecord.listen((r) => record = r);
+    try {
+      await client.get(prefix);
+    } catch (e) {}
+    expect(record!.level, Level.SEVERE);
+    expect(record!.error, isA<JsonFetcherException>());
+    subs.cancel();
+  });
 }
 
 class TestCloseClient extends MockClient {
