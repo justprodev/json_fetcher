@@ -85,60 +85,41 @@ Future<void> testWorkerHandleJob() async {
 
   final key = '123';
   final value = 'value';
-  final dir = getDirectory(root.path, key);
-  final file = File('${dir.path}/$key');
+  final file = getFile(root.path, key);
+  String? result;
 
-  for (final type in JobType.values) {
-    final job = switch (type) {
-      JobType.put => Job(root.path, type, key, value),
-      JobType.get => Job(root.path, type, key),
-      JobType.delete => Job(root.path, type, key),
-      JobType.emptyCache => Job(root.path, type, null),
-    };
+  // put
+  result = HttpFilesCacheWorker.handleJob(PutJob(root.path, key, value));
+  expect(result, null);
+  expect(file.existsSync(), true);
+  expect(file.readAsStringSync(), value);
 
-    Job runJob() => HttpFilesCacheWorker.handleJob(job);
-    runPutJob() {
-      if (file.existsSync()) file.deleteSync();
-      HttpFilesCacheWorker.handleJob(Job(root.path, JobType.put, key, value));
-    }
+  // get
+  result = HttpFilesCacheWorker.handleJob(GetJob(root.path, key));
+  expect(result, value);
 
-    final Job result;
+  // delete
+  result = HttpFilesCacheWorker.handleJob(DeleteJob(root.path, key));
+  expect(result, null);
+  expect(file.existsSync(), false);
+  result = HttpFilesCacheWorker.handleJob(GetJob(root.path, key));
+  expect(result, null);
 
-    switch (type) {
-      case JobType.put:
-        if (file.existsSync()) file.deleteSync();
-        result = runJob();
-        expect(file.existsSync(), true);
-        expect(file.readAsStringSync(), value);
-        expect(result.value, null);
-      case JobType.get:
-        runPutJob();
-        result = runJob();
-        expect(result.value, value);
-        expect(file.existsSync(), true);
-        expect(file.readAsStringSync(), value);
-      case JobType.delete:
-        runPutJob();
-        result = runJob();
-        expect(dir.existsSync(), true);
-        expect(file.existsSync(), false);
-      case JobType.emptyCache:
-        runPutJob();
-        result = runJob();
-        expect(dir.existsSync(), false);
-    }
-
-    expect(result.type, job.type);
-    expect(result.key, job.key);
-  }
+  // emptyCache
+  HttpFilesCacheWorker.handleJob(PutJob(root.path, key, value));
+  result = HttpFilesCacheWorker.handleJob(EmptyCacheJob(root.path));
+  expect(result, null);
+  expect(file.parent.existsSync(), false);
+  result = HttpFilesCacheWorker.handleJob(GetJob(root.path, key));
+  expect(result, null);
 }
 
 Future<void> testWorkerErrors() async {
   final worker = await HttpFilesCacheWorker.create();
   Object? error;
   final dir = Directory('$temp/nonExistentDir234324324234');
-  if(dir.existsSync()) dir.deleteSync(recursive: true);
-  final job = Job(dir.path, JobType.put, '123', 'value');
+  if (dir.existsSync()) dir.deleteSync(recursive: true);
+  final job = PutJob(dir.path, '123', 'value');
   try {
     await worker.run(job);
   } catch (e) {
@@ -171,10 +152,24 @@ Future<void> testWorkerIsolate() async {
   if (dir.existsSync()) dir.deleteSync(recursive: true);
   dir.createSync(recursive: true);
   final worker = await HttpFilesCacheWorker.create();
-  final keys = List.generate(10, (index) => index.toString());
-  await Future.wait(keys.map((key) => worker.run(Job(path, JobType.put, key, key))));
-  await Future.wait(keys.map((key) async {
-    expect((await worker.run(Job(path, JobType.get, key))).value, key);
-    return;
-  }));
+
+  // test concurrency for different keys
+  final numbersFrom0To10 = List.generate(10, (index) => index.toString());
+  await Future.wait(numbersFrom0To10.map((number) => worker.run(PutJob(path, number, number))));
+  final values = await Future.wait(numbersFrom0To10.map((number) => worker.run(GetJob(path, number))));
+  expect(values, numbersFrom0To10);
+
+  // test concurrency for same key
+  final key = numbersFrom0To10.first;
+  await Future.wait(numbersFrom0To10.map((number) => worker.run(PutJob(path, key, number))));
+  final value = await worker.run(GetJob(path, key));
+  expect(value, numbersFrom0To10.last);
+
+  // create exception
+  final message1 = 'isolate not spawned';
+  late String message2;
+  await HttpFilesCacheWorker.create((entryPoint, sendPort, {String? debugName}) async {
+    throw message1;
+  }).then((_) => message2 = 'isolate spawned').catchError((e) => message2 = e);
+  expect(message2, message1);
 }

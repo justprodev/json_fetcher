@@ -52,25 +52,25 @@ class HttpFilesCache extends HttpCache {
   @override
   Future<void> delete(String key) async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(_path, JobType.delete, key));
+    await _worker.run(DeleteJob(_path, key));
   }
 
   @override
   Future<String?> get(String key) async {
     if (_initializing != null) await _initializing!.future;
-    return (await _worker.run(Job(_path, JobType.get, key))).value;
+    return await _worker.run(GetJob(_path, key));
   }
 
   @override
   Future<void> put(String key, String value) async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(_path, JobType.put, key, value));
+    await _worker.run(PutJob(_path, key, value));
   }
 
   @override
   Future<void> emptyCache() async {
     if (_initializing != null) await _initializing!.future;
-    await _worker.run(Job(_path, JobType.emptyCache, null));
+    await _worker.run(EmptyCacheJob(_path));
   }
 
   /// This implementation uses FNV-1a hash function of the url + body

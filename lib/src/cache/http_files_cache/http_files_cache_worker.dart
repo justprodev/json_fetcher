@@ -8,23 +8,19 @@ import 'dart:isolate';
 import 'package:meta/meta.dart';
 
 /// Isolate worker for cache operations
-///
-/// 1. Using sync file IO
-/// 2. Only one job will be processed at a time, other jobs will wait
 class HttpFilesCacheWorker {
   final SendPort _commands;
 
-  final _input = HashMap<_JobKey, Completer<Job>>();
+  final _input = HashMap<Job, Completer<String?>>();
 
   HttpFilesCacheWorker._(ReceivePort responses, this._commands) {
     responses.listen((message) {
-      if (message is _JobResult) {
-        final key = _JobKey.fromJob(message.job);
-
-        if (message.error == null) {
-          _input[key]?.complete(message.job);
-        } else {
-          _input[key]?.completeError(message.error!, message.trace);
+      if (message is JobResult) {
+        switch (message) {
+          case JobValueResult():
+            _input[message.job]?.complete(message.value);
+          case JobErrorResult():
+            _input[message.job]?.completeError(message.error, message.trace);
         }
       }
     });
@@ -32,15 +28,17 @@ class HttpFilesCacheWorker {
 
   /// Send job to worker and wait for response
   @pragma('vm:prefer-inline')
-  Future<Job> run(Job job) async {
-    final key = _JobKey.fromJob(job);
-    final current = _input[key];
+  Future<String?> run(Job job) async {
+    final oldJob = _input[job];
 
-    // wait current job to complete, ignore the result and errors
-    if (current != null) await current.future.whenComplete(Future.value);
+    // wait old job and run new job
+    if (oldJob != null) {
+      await oldJob.future.catchError((_) => null);
+      return await run(job);
+    }
 
-    final completer = Completer<Job>();
-    _input[key] = completer;
+    final completer = Completer<String?>();
+    _input[job] = completer;
     _commands.send(job);
     try {
       // we prefer await here by self, because caller of the run() may not await the result
@@ -49,15 +47,19 @@ class HttpFilesCacheWorker {
       final result = await completer.future;
       return result;
     } finally {
-      _input.remove(key);
+      _input.remove(job);
     }
   }
 
   /// Spawn new isolate, setup communication and return worker
-  static Future<HttpFilesCacheWorker> create() async {
+  static Future<HttpFilesCacheWorker> create([
+    @visibleForTesting
+    Future<Isolate> Function(void Function(SendPort), SendPort, {String? debugName}) spawn = Isolate.spawn,
+  ]) async {
     // Create a receive port and add its initial message handler.
     final initPort = RawReceivePort();
     final connection = Completer<(ReceivePort, SendPort)>.sync();
+
     initPort.handler = (initialMessage) {
       final commandPort = initialMessage as SendPort;
       connection.complete((
@@ -67,7 +69,7 @@ class HttpFilesCacheWorker {
     };
     // Spawn the isolate.
     try {
-      await Isolate.spawn(_startWorker, (initPort.sendPort), debugName: 'HttpFilesCacheWorker');
+      await spawn(_startWorker, (initPort.sendPort), debugName: 'HttpFilesCacheWorker');
     } on Object {
       initPort.close();
       rethrow;
@@ -86,10 +88,10 @@ class HttpFilesCacheWorker {
     receivePort.listen((message) {
       if (message is Job) {
         try {
-          final result = handleJob(message);
-          sendPort.send(_JobResult(result));
+          final value = handleJob(message);
+          sendPort.send(JobValueResult(message, value));
         } catch (e, trace) {
-          sendPort.send(_JobResult(message, e, trace));
+          sendPort.send(JobErrorResult(message, e, trace));
         }
       }
     });
@@ -98,109 +100,99 @@ class HttpFilesCacheWorker {
   /// Process job and return result
   ///
   /// Perform IO operations
+  ///
+  /// Returns non-null for [GetJob]
   @visibleForTesting
   @pragma('vm:prefer-inline')
-  static Job handleJob(Job job) {
-    final path = job.path;
-
-    switch (job.type) {
-      case JobType.put:
-        final key = job.key!;
-        final Directory dir = getDirectory(path, key);
-
+  static String? handleJob(Job job) {
+    switch (job) {
+      case PutJob():
+        final file = getFile(job.path, job.key);
+        final dir = file.parent;
         if (!dir.existsSync()) dir.createSync();
-
-        final tmp = File('${dir.path}/.$key');
-
-        tmp.writeAsStringSync(job.value!);
-        tmp.renameSync('${dir.path}/$key');
-
-        return job.withValue(null);
-      case JobType.get:
-        final key = job.key!;
-        final Directory dir = getDirectory(path, key);
-
-        final file = File('${dir.path}/$key');
-        if (file.existsSync()) {
-          return job.withValue(file.readAsStringSync());
-        } else {
-          return job.withValue(null);
-        }
-      case JobType.delete:
-        final key = job.key!;
-        final dir = getDirectory(path, key);
-        final file = File('${dir.path}/$key');
-
+        final tempFile = File('${dir.path}/.${job.key}');
+        tempFile.writeAsStringSync(job.value);
+        tempFile.renameSync(file.path);
+      case DeleteJob():
+        final file = getFile(job.path, job.key);
         if (file.existsSync()) file.deleteSync();
-
-        return job;
-      case JobType.emptyCache:
-        final dir = Directory(path);
-        final tmp = dir.renameSync('$path.${DateTime.now().microsecondsSinceEpoch}');
+      case GetJob():
+        final file = getFile(job.path, job.key);
+        if (file.existsSync()) return file.readAsStringSync();
+      case EmptyCacheJob():
+        final dir = Directory(job.path);
+        final tmp = dir.renameSync('${dir.path}.${DateTime.now().microsecondsSinceEpoch}');
         dir.createSync();
         // run removing old cache asynchronously
         tmp.delete(recursive: true);
-        return job;
     }
+
+    return null;
   }
 }
 
 /// A job for worker
+///
 /// See [HttpFilesCacheWorker.handleJob]
-class Job {
+sealed class Job {
   /// Path to the cache directory
   final String path;
-
-  /// Type of job
-  final JobType type;
-
-  /// Key for the cache entry
   final String? key;
 
-  /// Value for the cache entry
+  const Job(this.path, [this.key]);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Job && runtimeType == other.runtimeType && path == other.path && key == other.key;
+
+  @override
+  int get hashCode => path.hashCode ^ key.hashCode;
+}
+
+class GetJob extends Job {
+  @override
+  String get key => super.key!;
+
+  const GetJob(super.path, String super.key);
+}
+
+class PutJob extends GetJob {
+  final String value;
+
+  const PutJob(super.path, super.key, this.value);
+}
+
+class DeleteJob extends GetJob {
+  const DeleteJob(super.path, super.key);
+}
+
+class EmptyCacheJob extends Job {
+  const EmptyCacheJob(super.path);
+}
+
+sealed class JobResult {
+  final Job job;
+
+  const JobResult(this.job);
+}
+
+class JobValueResult extends JobResult {
   final String? value;
 
-  const Job(this.path, this.type, this.key, [this.value]);
-
-  Job withValue(String? value) => Job(path, type, key, value);
-
-  @override
-  toString() => 'Job(path: $path, type: $type, key: $key, value: $value)';
+  const JobValueResult(super.job, this.value);
 }
 
-/// Type of job, corresponds to cache operations
-enum JobType { put, get, delete, emptyCache }
+class JobErrorResult extends JobResult {
+  final Object error;
+  final StackTrace trace;
 
-class _JobKey {
-  final String path;
-  final String? key;
-  final JobType type;
-
-  const _JobKey(this.path, this.key, this.type);
-
-  factory _JobKey.fromJob(Job job) => _JobKey(job.path, job.key, job.type);
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is _JobKey && other.path == path && other.key == key && other.type == type;
-  }
-
-  @override
-  int get hashCode => path.hashCode ^ key.hashCode ^ type.hashCode;
+  const JobErrorResult(super.job, this.error, this.trace);
 }
 
-class _JobResult {
-  final Job job;
-  final Object? error;
-  final StackTrace? trace;
-
-  const _JobResult(this.job, [this.error, this.trace]);
-}
-
-@visibleForTesting
 @pragma('vm:prefer-inline')
-Directory getDirectory(String path, String key) {
-  final bKey = int.parse(key);
-  return Directory('$path/d_${bKey ~/ 100}');
+File getFile(String path, String key) {
+  final integerKey = int.parse(key);
+  final dirPath = '$path/d_${integerKey ~/ 100}';
+  return File('$dirPath/$key');
 }
