@@ -116,7 +116,7 @@ class HttpFilesCacheWorker {
         tmp.renameSync('${dir.path}/$key');
 
         return job.withValue(null);
-      case JobType.peek:
+      case JobType.get:
         final key = job.key!;
         final Directory dir = getDirectory(path, key);
 
@@ -169,7 +169,7 @@ class Job {
 }
 
 /// Type of job, corresponds to cache operations
-enum JobType { put, peek, delete, emptyCache }
+enum JobType { put, get, delete, emptyCache }
 
 class _JobKey {
   final String path;

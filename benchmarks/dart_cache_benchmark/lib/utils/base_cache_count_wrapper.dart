@@ -27,8 +27,8 @@ class BaseCacheBenchmarkWrapper implements BaseCache {
   }
 
   @override
-  Future<String?> peek(String key) {
-    return _cache.peek(key).then((value) {
+  Future<String?> get(String key) {
+    return _cache.get(key).then((value) {
       _counter++;
       return Future.value(value);
     });

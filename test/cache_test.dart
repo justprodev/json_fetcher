@@ -49,15 +49,15 @@ void main() {
 }
 
 Future<void> testCache(HttpCache impl) async {
-  // put/peek/delete
+  // put/get/delete
   await impl.put('123', 'value1');
-  expect(await impl.peek('123'), 'value1');
+  expect(await impl.get('123'), 'value1');
   await impl.put('123', 'value2');
-  expect(await impl.peek('123'), 'value2');
+  expect(await impl.get('123'), 'value2');
   await impl.delete('123');
-  expect(await impl.peek('123'), null);
+  expect(await impl.get('123'), null);
   await impl.put('123', 'value3');
-  expect(await impl.peek('123'), 'value3');
+  expect(await impl.get('123'), 'value3');
 
   // emptyCache
   final keys = ['123', '124', '125'];
@@ -66,16 +66,16 @@ Future<void> testCache(HttpCache impl) async {
   }
   await impl.emptyCache();
   for (final key in keys) {
-    expect(await impl.peek(key), null);
+    expect(await impl.get(key), null);
   }
 
   // getKey
   final urlKey = impl.createKey('url');
   expect(urlKey, fastHash('url'));
   await impl.put(urlKey, 'value');
-  expect(await impl.peek(urlKey), 'value');
+  expect(await impl.get(urlKey), 'value');
   await impl.evict('url');
-  expect(await impl.peek(urlKey), null);
+  expect(await impl.get(urlKey), null);
 }
 
 Future<void> testWorkerHandleJob() async {
@@ -91,7 +91,7 @@ Future<void> testWorkerHandleJob() async {
   for (final type in JobType.values) {
     final job = switch (type) {
       JobType.put => Job(root.path, type, key, value),
-      JobType.peek => Job(root.path, type, key),
+      JobType.get => Job(root.path, type, key),
       JobType.delete => Job(root.path, type, key),
       JobType.emptyCache => Job(root.path, type, null),
     };
@@ -111,7 +111,7 @@ Future<void> testWorkerHandleJob() async {
         expect(file.existsSync(), true);
         expect(file.readAsStringSync(), value);
         expect(result.value, null);
-      case JobType.peek:
+      case JobType.get:
         runPutJob();
         result = runJob();
         expect(result.value, value);
@@ -174,7 +174,7 @@ Future<void> testWorkerIsolate() async {
   final keys = List.generate(10, (index) => index.toString());
   await Future.wait(keys.map((key) => worker.run(Job(path, JobType.put, key, key))));
   await Future.wait(keys.map((key) async {
-    expect((await worker.run(Job(path, JobType.peek, key))).value, key);
+    expect((await worker.run(Job(path, JobType.get, key))).value, key);
     return;
   }));
 }

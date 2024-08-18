@@ -51,7 +51,7 @@ abstract class JsonHttpFetcher<T> {
     }
 
     JsonFetcherException? error;
-    final cachedString = await _client.cache.peek(key);
+    final cachedString = await _client.cache.get(key);
     T? cachedDocument;
 
     if (cachedString != null && !nocache) {

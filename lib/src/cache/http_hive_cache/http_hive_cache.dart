@@ -52,7 +52,7 @@ class HttpHiveCache extends HttpCache {
   }
 
   @override
-  Future<String?> peek(String key) async {
+  Future<String?> get(String key) async {
     if (_initializing != null) await _initializing!.future;
     return await _cache.get(key);
   }

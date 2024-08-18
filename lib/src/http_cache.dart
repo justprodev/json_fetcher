@@ -24,7 +24,7 @@ abstract class HttpCache implements BaseCache {
 /// Base cache operations, not related to network
 abstract class BaseCache {
   /// get string from cache
-  Future<String?> peek(String key);
+  Future<String?> get(String key);
 
   /// put string to cache
   Future<void> put(String key, String value);

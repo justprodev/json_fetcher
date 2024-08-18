@@ -51,18 +51,18 @@ Stream<String> _runBenchmark(BaseCache cache, Map<String, String> values) async*
   stopwatch.reset();
 
   for (final key in values.keys) {
-    await cache.peek(key);
+    await cache.get(key);
   }
-  yield 'Seq peek ${values.keys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
+  yield 'Seq get ${values.keys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
 
   final shuffledKeys = (List<String>.from(values.keys)..shuffle()).take(1000).toList();
 
   stopwatch.reset();
 
   for (final key in shuffledKeys) {
-    await cache.peek(key);
+    await cache.get(key);
   }
-  yield 'Random seq peek ${shuffledKeys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
+  yield 'Random seq get ${shuffledKeys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
 
   stopwatch.reset();
 
@@ -78,13 +78,13 @@ Stream<String> _runBenchmark(BaseCache cache, Map<String, String> values) async*
 
   stopwatch.reset();
 
-  await Future.wait(values.keys.map((key) => cache.peek(key)));
-  yield 'Burst peek ${values.keys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
+  await Future.wait(values.keys.map((key) => cache.get(key)));
+  yield 'Burst get ${values.keys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
 
   stopwatch.reset();
 
-  await Future.wait(shuffledKeys.map((key) => cache.peek(key)));
-  yield 'Random burst peek ${shuffledKeys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
+  await Future.wait(shuffledKeys.map((key) => cache.get(key)));
+  yield 'Random burst get ${shuffledKeys.length} keys: ${stopwatch.elapsed.inMilliseconds} ms\n';
 
   stopwatch.reset();
 
@@ -97,7 +97,7 @@ Stream<String> _runBenchmark(BaseCache cache, Map<String, String> values) async*
 
   int crc2 = 0;
   for (final key in values.keys) {
-    final value = await cache.peek(key);
+    final value = await cache.get(key);
     crc2 += Crc32.compute(Uint8List.fromList((key + value!).codeUnits));
   }
 

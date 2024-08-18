@@ -56,9 +56,9 @@ class HttpFilesCache extends HttpCache {
   }
 
   @override
-  Future<String?> peek(String key) async {
+  Future<String?> get(String key) async {
     if (_initializing != null) await _initializing!.future;
-    return (await _worker.run(Job(_path, JobType.peek, key))).value;
+    return (await _worker.run(Job(_path, JobType.get, key))).value;
   }
 
   @override
