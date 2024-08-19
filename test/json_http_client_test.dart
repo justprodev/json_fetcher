@@ -208,7 +208,9 @@ errorsGroup() {
     final subs = Logger.root.onRecord.listen((r) => record = r);
     try {
       await client.get(prefix);
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
     expect(record!.level, Level.SEVERE);
     expect(record!.error, isA<JsonFetcherException>());
     subs.cancel();
