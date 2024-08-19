@@ -28,9 +28,9 @@ The cache data is managed by implementations of [HttpCache](lib/src/http_cache.d
 [HttpFilesCache](lib/src/cache/http_files_cache/http_files_cache.dart) stores data in files.
 It uses long living `Isolate` to work synchronously with the file system. This increases the speed of the cache.
 
-### web
+### Web
 
-[http_hive_cache.dart](lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
+[HttpHiveCache](lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
 which is not related to Isar. Not bad for working as Key-Value storage.
 
 ## Usage
