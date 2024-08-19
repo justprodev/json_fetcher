@@ -23,20 +23,13 @@ class HttpHiveCache extends HttpCache {
         _cache = await Hive.openLazyBox(_boxName);
         _initializing?.complete();
         _initializing = null;
-      } catch (e) {
-        // try to delete the box and open it again
-        try {
-          await Hive.deleteBoxFromDisk(_boxName);
-          _cache = await Hive.openLazyBox(_boxName);
-          _initializing?.complete();
-          _initializing = null;
-        } catch (ee) {
-          _initializing?.completeError(ee);
-        }
+      } catch (e, t) {
+        _initializing!.completeError(e, t);
       }
     }
 
-    init();
+    // ignore uncaught errors in Hive
+    runZonedGuarded(init, (e, t) {});
   }
 
   @override
