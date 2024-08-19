@@ -4,7 +4,7 @@
 ## Motivation
 
 Imagine a user launching an app for the second time and seeing a skeletal loading screen or progress bar,
-especially in parts of the UI where the data doesn't change often. This is bad UX.
+especially in parts of the UI where the data doesn't change often. This is not so good UX.
 
 To fix this, we can load the data from the cache in the first step and then update the data in the second step.
 
