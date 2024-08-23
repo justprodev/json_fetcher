@@ -7,19 +7,17 @@ environment:
   sdk: ^3.4.0
 
 dependencies:
-
-  build_runner: ^2.4.11
-  freezed: ^2.5.7
   freezed_annotation: ^2.4.4
   http:
 
+  json_annotation: ^4.9.0
   json_fetcher:
-    path: ../../../json_fetcher
-  json_serializable: ^6.8.0
-#  json_fetcher:
-#    git:
-#      url: https://github.com/justprodev/json_fetcher.git
-#      ref: 2.0.0-rc.12 # control the version, please
+    git:
+      url: https://github.com/justprodev/json_fetcher.git
+      ref: 2.0.0-rc.12 # control the version, please
 
 dev_dependencies:
   lints: ^3.0.0
+  build_runner: ^2.4.11
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
