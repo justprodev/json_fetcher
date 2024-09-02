@@ -36,6 +36,9 @@ Main thread latency (94002 ops): 0.125 ms
 
 Linux:
 ```
+/dart_cache_benchmark$ dart bin/dart_cache_benchmark.dart
+Key value size: 27.0 KB
+
 HttpHiveCache:
 Seq put 10000 keys: 3658 ms
 Seq get 10000 keys: 1831 ms
