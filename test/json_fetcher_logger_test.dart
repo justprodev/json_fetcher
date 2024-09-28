@@ -105,6 +105,11 @@ void main() {
   test('no log input body', () => testBody(true, false));
   test('log output body', () => testBody(false, true));
   test('no log output body', () => testBody(false, false));
+
+  test('log input headers', () => testHeaders(true, true));
+  test('no log input headers', () => testHeaders(true, false));
+  test('log output headers', () => testHeaders(false, true));
+  test('no log output headers', () => testHeaders(false, false));
 }
 
 Future<void> testAuth(bool show) async {
@@ -158,6 +163,34 @@ Future<void> testBody(bool input, bool show) async {
       assert(record.message.contains('body: body'), 'body isn\'t present');
     } else {
       assert(!record.message.contains('body: body'), 'body is present');
+    }
+  });
+  await client.post('${prefix}a', 'body');
+
+  await subs.cancel();
+}
+
+Future<void> testHeaders(bool input, bool show) async {
+  final JsonHttpClient client;
+  if (input) {
+    client = await createClient(config: LoggableHttpClientConfig(logInputHeaders: show));
+  } else {
+    client = await createClient(config: LoggableHttpClientConfig(logOutputHeaders: show));
+  }
+
+  server.enqueue(body: 'body', headers: {'Content-type': 'application/json', ...authHeaders1});
+  final subs = Logger.root.onRecord.listen((record) {
+    if (input) {
+      if (record.message.contains('<--')) return; // skip incoming
+    } else {
+      if (record.message.contains('-->')) return; // skip outgoing
+    }
+
+    //debugPrint(record.toString());
+    if (show) {
+      assert(record.message.contains('header:'), 'header isn\'t present');
+    } else {
+      assert(!record.message.contains('header:'), 'body is present');
     }
   });
   await client.post('${prefix}a', 'body');

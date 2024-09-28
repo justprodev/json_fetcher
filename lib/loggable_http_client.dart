@@ -56,6 +56,8 @@ class LoggableHttpClient extends BaseClient {
 class LoggableHttpClientConfig {
   final bool logInputBody;
   final bool logOutputBody;
+  final bool logInputHeaders;
+  final bool logOutputHeaders;
   final bool hideAuthorization;
   final bool cutLongBody;
 
@@ -64,8 +66,16 @@ class LoggableHttpClientConfig {
     this.logOutputBody = false,
     this.hideAuthorization = true,
     this.cutLongBody = true,
+    this.logInputHeaders = true,
+    this.logOutputHeaders = true,
   });
 
-  factory LoggableHttpClientConfig.full() => const LoggableHttpClientConfig(
-      logInputBody: true, logOutputBody: true, hideAuthorization: false, cutLongBody: false);
+  factory LoggableHttpClientConfig.full() {
+    return const LoggableHttpClientConfig(
+      logInputBody: true,
+      logOutputBody: true,
+      hideAuthorization: false,
+      cutLongBody: false,
+    );
+  }
 }

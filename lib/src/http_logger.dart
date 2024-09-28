@@ -26,7 +26,9 @@ class HttpLogger {
 
   Future<void> logRequest(BaseRequest request) async {
     String s = "${request.method} ${request.url} -->";
-    s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(request.headers) : request.headers}";
+    if(config.logInputHeaders) {
+      s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(request.headers) : request.headers}";
+    }
     if (config.logInputBody && request is Request && request.body.isNotEmpty) {
       s += "\nbody: ${await _smartCut(request.headers[HttpHeaders.contentTypeHeader], request.body)}";
     }
@@ -35,7 +37,9 @@ class HttpLogger {
 
   Future<void> logResponse(BaseRequest request, BaseResponse response, [Uint8List? bytes]) async {
     String s = "${request.method} ${request.url} <-- ${response.statusCode}";
-    s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(response.headers) : response.headers}";
+    if(config.logOutputHeaders) {
+      s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(response.headers) : response.headers}";
+    }
 
     // need log body
     if (bytes != null) {
