@@ -3,12 +3,12 @@
 
 ## Motivation
 
-Imagine a user launching an app for the second time and seeing a skeletal loading screen or progress bar,
+Imagine a user launching the app for the second time and seeing a skeletal loading screen or progress bar,
 especially in parts of the UI where the data doesn't change often. This is not so good UX.
 
-To fix this, we can load the data from the cache in the first step and then update the data in the second step.
+To fix this, we can load the data from the cache in the first step, and then update the data in the second step.
 
-We don't target to minimize query to the server, but to minimize the time to show the data to the user.
+Our goal is not to minimize requests to the server, but to minimize the time it takes to display the data to the user.
 
 ## How it works
 
