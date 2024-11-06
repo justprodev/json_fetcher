@@ -21,16 +21,16 @@ If there is no cached copy, the stream's subscriber will get one snapshot.
 
 ## Cache
 
-The cache data is managed by implementations of [HttpCache](lib/src/http_cache.dart).
+The cache data is managed by implementations of [HttpCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/http_cache.dart).
 
 ### dart:io (mobile/desktop)
 
-[HttpFilesCache](lib/src/cache/http_files_cache/http_files_cache.dart) stores data in files.
+[HttpFilesCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_files_cache/http_files_cache.dart) stores data in files.
 It uses long living `Isolate` to work synchronously with the file system. This increases the speed of the cache.
 
 ### Web
 
-[HttpHiveCache](lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
+[HttpHiveCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
 which is not related to Isar. Not bad for working as Key-Value storage.
 
 ## Usage
@@ -71,4 +71,4 @@ void main() async {
 }
 ```
 
-More examples can be found in the [examples](examples) directory.
+More examples can be found in the [examples](https://github.com/justprodev/json_fetcher/tree/master/examples) directory.
