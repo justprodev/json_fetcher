@@ -1,7 +1,12 @@
 name: json_fetcher
-description: Wrapper over standard HttpClient with caching/auth-handling/etc
-version: 2.0.0-rc.13
-homepage: https://github.com/justprodev/json_fetcher
+description: Conveniently fetch JSON data from the internet and cache it locally.
+version: 2.0.0
+repository: https://github.com/justprodev/json_fetcher
+
+topics:
+  - http
+  - json
+  - cache
 
 environment:
   sdk: ^3.0.0
