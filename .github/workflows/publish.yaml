@@ -6,8 +6,31 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+' # tag-pattern on pub.dev: '{{version}}'
 
-
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test -j 1 --coverage
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage/lcov.info
+
   publish:
     permissions:
       id-token: write # Required for authentication using OIDC
