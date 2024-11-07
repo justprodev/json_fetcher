@@ -9,11 +9,7 @@ import 'package:logging/logging.dart';
 
 JsonHttpClient createClient([FutureOr<String>? path]) {
   return JsonHttpClient(
-    LoggableHttpClient(
-      Client(),
-      Logger.root,
-      config: const LoggableHttpClientConfig(),
-    ),
+    LoggableHttpClient(Client(), Logger.root),
     createCache(path),
   );
 }
