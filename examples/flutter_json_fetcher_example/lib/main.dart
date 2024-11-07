@@ -11,14 +11,14 @@ import 'repositories/comments_repository.dart';
 import 'utils/path/get_path_web.dart' if (dart.library.io) 'utils/path/get_path_io.dart';
 import 'view/app.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   Logger.root.onRecord.listen((record) {
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  final client = await createClient(getPath());
+  final client = createClient(getPath());
 
   runApp(
     MultiProvider(
