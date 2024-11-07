@@ -26,9 +26,9 @@ final postsStream = JsonFetcher<Model>>(
 ```
 
 > [!TIP]
-> Examples can be found in the [examples](https://github.com/justprodev/json_fetcher/tree/master/examples) directory:
-> - [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example)
-> - [Pure Dart example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example)
+> Examples can be found in the [example](https://github.com/justprodev/json_fetcher/tree/master/example) directory:
+> - [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/example/flutter_json_fetcher_example)
+> - [Pure Dart example](https://github.com/justprodev/json_fetcher/tree/master/example/flutter_json_fetcher_example)
 
 
 ## Configuration
@@ -72,7 +72,7 @@ final jsonClient = JsonHttpClient(httpClient(), cache)
 
 > [!TIP]
 > The package contains convenitent client-wrapper with logging capabitility [LoggableHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/loggable_http_client.dart),
-> see [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example) as use case.
+> see [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/example/flutter_json_fetcher_example) as use case.
 
 
 ### Cache
