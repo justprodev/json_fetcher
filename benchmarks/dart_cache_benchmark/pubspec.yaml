@@ -1,0 +1,15 @@
+name: dart_cache_benchmark
+description: Benchmarking json_fetcher caches
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+
+# Add regular dependencies here.
+dependencies:
+  json_fetcher:
+    path: ../../../json_fetcher
+
+dev_dependencies:
+  lints: ^3.0.0

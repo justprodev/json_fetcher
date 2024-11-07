@@ -4,12 +4,20 @@
 
 import 'dart:async';
 import 'package:meta/meta.dart';
-import 'json_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_client.dart';
 
+/// Base class for implementing fetchers
 ///
+/// Example:
+///```dart
+/// class UserFetcher extends JsonHttpFetcher<User> {
+///   const UserFetcher(super.client);
 ///
+///   @override
+///   Future<User> parse(String source) async => User.fromJson(json.decode(source))!;
+/// }
+///```
 ///
 abstract class JsonHttpFetcher<T> {
   final JsonHttpClient _client;
@@ -37,13 +45,13 @@ abstract class JsonHttpFetcher<T> {
 
     if (body != null) {
       assert(cacheUrl == null, 'cacheUrl could not be used with body');
-      key = _client.cache.buildKey(url, body: body);
+      key = _client.cache.createKey(url, body: body);
     } else {
-      key = _client.cache.buildKey(cacheUrl ?? url);
+      key = _client.cache.createKey(cacheUrl ?? url);
     }
 
     JsonFetcherException? error;
-    final cachedString = await _client.cache.peek(key);
+    final cachedString = await _client.cache.get(key);
     T? cachedDocument;
 
     if (cachedString != null && !nocache) {
@@ -57,9 +65,12 @@ abstract class JsonHttpFetcher<T> {
 
     try {
       final onlineString = await _sendRequest(url, headers: headers, body: body, usePost: usePost);
-      await _client.cache.put(key, onlineString);
 
       if (cachedString != onlineString) {
+        // don't wait writing to cache
+        // handle errors if onError provided
+        _client.cache.put(key, onlineString).catchError(_client.onError);
+
         final document = await parse(onlineString);
         // drop error because we have valid document
         error = null;
@@ -67,7 +78,7 @@ abstract class JsonHttpFetcher<T> {
         _client.onFetched?.call(url, document!);
       }
     } catch (e, t) {
-      if(e is JsonFetcherException) {
+      if (e is JsonFetcherException) {
         error = e;
       } else {
         error = JsonFetcherException(url, e.toString(), e, trace: t);
@@ -78,7 +89,7 @@ abstract class JsonHttpFetcher<T> {
       // throw errors only if we have no valid document from cache
       // or we have to throw errors even if cache is exists
       if (cachedDocument == null || allowErrorWhenCacheExists) {
-        _client.onError?.call(error, error.trace);
+        _client.onError(error, error.trace);
         yield* Stream.error(error);
       }
     }

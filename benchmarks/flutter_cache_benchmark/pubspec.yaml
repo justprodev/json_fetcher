@@ -1,0 +1,33 @@
+name: flutter_cache_benchmark
+description: "Benchmarking json_fetcher caches"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  dart_cache_benchmark:
+    path: ../dart_cache_benchmark
+
+  json_fetcher:
+    path: ../../../json_fetcher
+
+  path_provider:
+
+  cupertino_icons: ^1.0.6
+
+  animated_flip_counter: ^0.3.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+flutter:
+  uses-material-design: true
+

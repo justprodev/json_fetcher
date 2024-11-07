@@ -3,14 +3,101 @@
 
 ## Motivation
 
-Imagine a user launching an app for the second time and seeing a skeletal loading screen or progress bar, especially in parts of the UI where the data doesn't change often. This is bad UX.
+Imagine a user launching the app for the second time and seeing a skeletal loading screen or progress bar,
+especially in parts of the UI where the data doesn't change often. This is not a good UX.
 
-To fix this, we can load the data from the cache in the first step and then update the data in the second step. This library provides a convenient method for doing this.
+To fix this, we can load the data from the cache in the first step, and then update the data in the second step.
 
-## Cache
+*We don't aim to minimize requests to the server, but to minimize the time it takes to display the data to the user.*
 
-Currently, at low level a cached data are managed by [hive](https://github.com/isar/hive/tree/legacy) - old version not related to Isar.
-Just because `hive` works well with `key-value data` on mobile/desktop/web (despite many criticism on it).
+## Using
+
+```dart
+import 'package:http/http.dart' as http;
+import 'package:json_fetcher/json_fetcher.dart';
+import 'package:path_provider/path_provider.dart';
+
+Future<String> get cachePath => getApplicationCacheDirectory().then((dir) => dir.path)
+final client = JsonHttpClient(http.Client(), createCache(cachePath));
+final postsStream = JsonFetcher<Model>>(
+  client,
+  (json) => Model.fromJson(json),
+).fetch('https://example.com/get-json');
+```
+
+> [!TIP]
+> Examples can be found in the [examples](https://github.com/justprodev/json_fetcher/tree/master/examples) directory:
+> - [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example)
+> - [Pure Dart example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example)
+
+
+## Configuration
+
+At the first step you should create [JsonHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/src/json_http_client.dart):
+
+```dart
+final jsonClient = JsonHttpClient(httpClient, cache);
+```
+
+### HttpClient
+
+This package uses standard Dart [http](https://pub.dev/packages/http) package.
+
+Basicaly, is enough to use [Client()](https://pub.dev/documentation/http/latest/http/Client-class.html) for creating raw client:
+
+```dart
+final jsonClient = JsonHttpClient(Client(), cache)
+```
+
+So, you can [configure client](https://pub.dev/packages/http#2-configure-the-http-client) more precisely before creating [JsonHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/src/json_http_client.dart) itself.
+
+```dart
+Client httpClient() {
+  if (Platform.isAndroid) {
+    final engine = CronetEngine.build(
+        cacheMode: CacheMode.memory,
+        cacheMaxSize: 1000000);
+    return CronetClient.fromCronetEngine(engine);
+  }
+  if (Platform.isIOS || Platform.isMacOS) {
+    final config = URLSessionConfiguration.ephemeralSessionConfiguration()
+      ..cache = URLCache.withCapacity(memoryCapacity: 1000000);
+    return CupertinoClient.fromSessionConfiguration(config);
+  }
+  return IOClient();
+}
+
+final jsonClient = JsonHttpClient(httpClient(), cache)
+```
+
+> [!TIP]
+> The package contains convenitent client-wrapper with logging capabitility [LoggableHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/loggable_http_client.dart),
+> see [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example) as use case.
+
+
+### Cache
+
+For creating `cache` just use convenient function `createCache(path)`.
+
+> [!NOTE]
+> `path` can be `String` of `Future<String>`
+>
+> `Future<String>` variant is very useful for creating a client somewhere in `DI` at app startup, to prevent unneded waiting.
+
+In Flutter Android/iOS app you can create client that caches data in standard cache directory with following snippet:
+
+```dart
+import 'package:path_provider/path_provider.dart';
+
+Future<String> get path => getApplicationCacheDirectory().then((value) => value.path)
+
+final jsonClient = JsonHttpClient(httpClient(), createCache(path))
+```
+
+> [!TIP]
+> Package exposes interface [HttpCache](https://github.com/justprodev/json_fetcher/blob/master/lib/src/http_cache.dart), that can be implemented to use your own cache.
+
+## How it works
 
 If the data has changed (new data has arrived from the network), it will be updated in the second step.
 That's why we use ```Stream<T>``` instead of ```Future<T>```. The stream's subscriber will get two snapshots.
@@ -19,36 +106,16 @@ If the data hasn't changed, the stream's subscriber will get one snapshot
 
 If there is no cached copy, the stream's subscriber will get one snapshot.
 
-## Example
+### Cache
 
-```dart
-/// you can use freezed in real scenario
-class Typical {
-  String? data;
+The cache data is managed by implementations of [HttpCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/http_cache.dart).
 
-  static Typical fromJson(Map<String, dynamic> map) {
-    Typical typical = Typical();
-    typical.data = map['data'];
-    return typical;
-  }
-}
+#### dart:io (mobile/desktop)
 
-class _TypicalFetcher extends JsonHttpFetcher<List<Typical>> {
-  _TypicalFetcher(JsonHttpClient client) : super(client);
+[HttpFilesCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_files_cache/http_files_cache.dart) stores data in files.
+It uses long living `Isolate` to work synchronously with the file system. This increases the speed of the cache.
 
-  List<Typical> parse(String source) => _parseTypicals(source)
+#### Web
 
-  /// to parse big and complex json data in isolate
-  //@override
-  //Future<List<Typical>> parse(String source) => compute(_parseTypicals, source);
-
-  static List<Typical> _parseTypicals(String source) {
-    final parsed = json.decode(source);
-    return parsed.map<Typical>((json) => Typical.fromMap(json)).toList();
-  }
-}
-
-Stream<List<Typical>> fetchTypicals(JsonHttpClient client, String url) => _TypicalFetcher(client).fetch(url);
-```
-
-More examples coming soon
+[HttpHiveCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
+which is not related to Isar. Not bad for working as Key-Value storage.

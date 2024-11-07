@@ -7,32 +7,60 @@ import 'dart:io' show HttpHeaders, HttpException;
 
 import 'package:http/http.dart' as http;
 import 'package:json_fetcher/src/util/http.dart';
+import 'package:logging/logging.dart';
 
-import 'auth_info.dart';
-import 'cache/json_hive_cache.dart';
-import 'json_cache.dart';
+import 'http_cache.dart';
 import 'json_fetcher_exception.dart';
 import 'json_http_fetcher.dart';
 
 /// Client especially for fetching json from host(s)
+///
+/// Example of usage:
+/// ```dart
+///
+/// import 'package:json_fetcher/json_fetcher.dart';
+/// import 'package:http/http.dart' as http;
+///
+/// final client = JsonHttpClient(http.Client(), createCache());
+///
+/// ```
+///
 class JsonHttpClient {
   /// delegated [http.Client] which will be used for all requests
   final http.Client _client;
-  final AuthInfo? auth;
 
-  // register all errors, include parse errors in a fetchers
-  final Function(Object error, StackTrace? trace)? onError;
+  /// cache manager used by [JsonHttpFetcher]
+  /// can be used to directly control the cache (i.e. [HttpCache.emptyCache]/[HttpCache.evict])
+  final HttpCache cache;
+
+  /// Catch all errors
+  /// By default, it just logs errors using [Logger]
+  final Function(Object error, StackTrace? trace) onError;
 
   /// called when new document came from network and parsed
   final Function(String url, Object document)? onFetched;
 
-  /// cache manager used by [JsonHttpFetcher]
-  late final JsonCache _cache = JsonHiveCache((url, headers) async {
-    final response = await get(url, headers: headers);
-    return response.body;
-  }, onError);
+  /// These headers will be applied to all requests
+  ///
+  /// [url] requested url
+  final Map<String, String> Function(String url)? globalHeaders;
 
-  JsonHttpClient(this._client, {this.auth, this.onError, this.onFetched});
+  /// Will be called for 401 error ([authHeaders] will be removed from the header immediately),
+  ///
+  /// [logout]==true means that handler was called  at second, because a new auth data is wrong,
+  ///  and We probably should redirect to login page
+  ///
+  /// MUST return true if token is refreshed successfully
+  final Future<bool> Function(bool logout)? onExpire;
+
+  JsonHttpClient(
+    this._client,
+    this.cache, {
+    this.globalHeaders,
+    this.onExpire,
+    this.onError = _defaultOnError,
+    this.onFetched,
+  });
 
   Future<http.Response> post(String url, String json, {Map<String, String>? headers, skipCheckingExpiration = false}) =>
       _send('POST', url, json, headers: headers, skipCheckingExpiration: skipCheckingExpiration);
@@ -58,10 +86,8 @@ class JsonHttpClient {
       _send('POST', url, null,
           headers: headers, skipCheckingExpiration: skipCheckingExpiration, files: files, fields: fields);
 
-  void logout() => auth?.onExpire.call(true);
-
-  /// can be used to directly control the cache (i.e. [JsonCache.emptyCache]/[JsonCache.evict])
-  JsonCache get cache => _cache;
+  /// initiate logout
+  void logout() => onExpire?.call(true);
 
   /// So, basically is just wrapper over [BaseClientExt.sendUnstreamed] which:
   ///
@@ -85,13 +111,11 @@ class JsonHttpClient {
         if (fields != null) request.fields.addAll(fields);
         request.headers.addAll(headers ?? {});
         request.files.addAll(files);
-        final authHeaders = auth?.headers(url);
-        if (authHeaders != null) request.headers.addAll(authHeaders);
+        if (globalHeaders != null) request.headers.addAll(globalHeaders!(url));
         return await _client.send(request).then(http.Response.fromStream);
       } else {
-        final Map<String, String> h = {"Content-Type": "application/json"};
-        final authHeaders = auth?.headers(url);
-        if (authHeaders != null) h.addAll(authHeaders);
+        final Map<String, String> h = {HttpHeaders.contentTypeHeader: "application/json"};
+        if (globalHeaders != null) h.addAll(globalHeaders!(url));
         if (headers != null) h.addAll(headers);
         return _client.sendUnstreamed(method, Uri.parse(url), h, json);
       }
@@ -107,13 +131,13 @@ class JsonHttpClient {
         }
         if (response.statusCode < 200 || response.statusCode >= 400) {
           /// for 401 error we silently invoke onExpire handler
-          if (response.statusCode == 401 && auth != null && !skipCheckingExpiration) {
+          if (response.statusCode == 401 && onExpire != null && !skipCheckingExpiration) {
             final refreshed = await _onExpire(); // refresh auth data
             if (refreshed) {
               return await action(); // resubmit latest call & return here because error handled inside action (thrown, etc)
             } else {
               // logout
-              await auth!.onExpire.call(true);
+              await onExpire!(true);
               throw HttpException('401', uri: response.request?.url);
             }
           } else {
@@ -125,7 +149,7 @@ class JsonHttpClient {
         String message = 'Error while $method $url';
         if (response != null) message += ': code=${response.statusCode} body=${response.body}';
         final error = JsonFetcherException(url, message, e, response: response, trace: trace);
-        onError?.call(error, trace);
+        onError(error, trace);
         throw error;
       }
     };
@@ -138,8 +162,7 @@ class JsonHttpClient {
   /// process onExpire calls in one place
   /// to make additional routing, to prevent extra calls and etc
   Future<bool> _onExpire() {
-    // any case
-    if (auth == null) return Future.value(false);
+    if (onExpire == null) return Future.value(false);
 
     // when we already waiting onExpire() call, then don't create new one,
     // instead we will return the same call
@@ -147,7 +170,7 @@ class JsonHttpClient {
     if (oldCall != null) return oldCall;
 
     // create only if not exists
-    final newCall = auth!.onExpire.call(false);
+    final newCall = onExpire!.call(false);
     // inform everyone that we are ready for a new call, when old is complete
     newCall.whenComplete(() => _onExpireFuture = null);
     _onExpireFuture = newCall;
@@ -155,4 +178,6 @@ class JsonHttpClient {
   }
 
   Future<bool>? _onExpireFuture;
+
+  static void _defaultOnError(Object error, StackTrace? trace) => Logger('JsonHttpClient').severe('', error, trace);
 }

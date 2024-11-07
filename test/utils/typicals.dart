@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:json_fetcher/src/json_http_client.dart';
 import 'package:json_fetcher/src/json_http_fetcher.dart';
 
@@ -30,11 +29,11 @@ class Typical {
 }
 
 class TypicalFetcher extends JsonHttpFetcher<List<Typical>> {
-  const TypicalFetcher(JsonHttpClient client) : super(client);
+  const TypicalFetcher(super.client);
 
   /// compute json parsing in separated thread
   @override
-  Future<List<Typical>> parse(String source) => compute(_parseTypicals, source);
+  List<Typical> parse(String source) => _parseTypicals(source);
 
   static List<Typical> _parseTypicals(String source) {
     final parsed = json.decode(source);
