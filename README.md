@@ -1,4 +1,4 @@
-[![pub package](https://img.shields.io/pub/v/http.svg)](https://pub.dev/packages/json_fetcher)
+[![pub package](https://img.shields.io/pub/v/json_fetcher.svg)](https://pub.dev/packages/json_fetcher)
 [![codecov](https://codecov.io/gh/justprodev/json_fetcher/graph/badge.svg?token=2EOK5RXNB4)](https://codecov.io/gh/justprodev/json_fetcher)
 
 ## Motivation
