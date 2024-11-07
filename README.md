@@ -1,4 +1,4 @@
-![test on release](https://github.com/justprodev/json_fetcher/actions/workflows/release.yaml/badge.svg)
+[![pub package](https://img.shields.io/pub/v/http.svg)](https://pub.dev/packages/json_fetcher)
 [![codecov](https://codecov.io/gh/justprodev/json_fetcher/graph/badge.svg?token=2EOK5RXNB4)](https://codecov.io/gh/justprodev/json_fetcher)
 
 ## Motivation
@@ -17,7 +17,7 @@ import 'package:http/http.dart' as http;
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:path_provider/path_provider.dart';
 
-Future<String> get cachePath => getApplicationCacheDirectory().then((dir) => dir.path)
+Future<String> get cachePath => getApplicationCacheDirectory().then((dir) => dir.path);
 final client = JsonHttpClient(http.Client(), createCache(cachePath));
 final postsStream = JsonFetcher<Model>>(
   client,
@@ -46,7 +46,7 @@ This package uses standard Dart [http](https://pub.dev/packages/http) package.
 Basicaly, is enough to use [Client()](https://pub.dev/documentation/http/latest/http/Client-class.html) for creating raw client:
 
 ```dart
-final jsonClient = JsonHttpClient(Client(), cache)
+final jsonClient = JsonHttpClient(Client(), cache);
 ```
 
 So, you can [configure client](https://pub.dev/packages/http#2-configure-the-http-client) more precisely before creating [JsonHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/src/json_http_client.dart) itself.
@@ -67,7 +67,7 @@ Client httpClient() {
   return IOClient();
 }
 
-final jsonClient = JsonHttpClient(httpClient(), cache)
+final jsonClient = JsonHttpClient(httpClient(), cache);
 ```
 
 > [!TIP]
@@ -89,9 +89,9 @@ In Flutter Android/iOS app you can create client that caches data in standard ca
 ```dart
 import 'package:path_provider/path_provider.dart';
 
-Future<String> get path => getApplicationCacheDirectory().then((value) => value.path)
+Future<String> get path => getApplicationCacheDirectory().then((value) => value.path);
 
-final jsonClient = JsonHttpClient(httpClient(), createCache(path))
+final jsonClient = JsonHttpClient(httpClient(), createCache(path));
 ```
 
 > [!TIP]
