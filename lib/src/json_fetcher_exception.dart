@@ -1,5 +1,8 @@
-import 'dart:io' show IOException;
-import 'package:http/http.dart' show ClientException, Response;
+import 'package:http/http.dart' show Response;
+
+import 'util/exception/not_reachable_stub.dart'
+    if (dart.library.js_interop) 'util/exception/not_reachable_web.dart'
+    if (dart.library.io) 'util/exception/not_reachable_io.dart';
 
 /// Created by alex@justprodev.com on 19.06.2022.
 
@@ -13,14 +16,15 @@ class JsonFetcherException {
   const JsonFetcherException(this.url, this.message, this.error, {this.response, this.trace});
 
   @override
-  String toString() => '$url: $message (${response?.statusCode??''} ${response?.reasonPhrase??''} $error)';
+  String toString() => '$url: $message (${response?.statusCode ?? ''} ${response?.reasonPhrase ?? ''} $error)';
 
   int? get statusCode => response?.statusCode;
+
   String? get body => response?.body;
 
   bool get notReachable {
-    if(response!=null) return false;
+    if (response != null) return false;
 
-    return error is IOException || error is ClientException;
+    return isNotReachable(error);
   }
 }

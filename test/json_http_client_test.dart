@@ -60,12 +60,15 @@ void main() {
         },
       );
 
+      int? statusCode;
+
       try {
         await client.get(prefix);
       } on JsonFetcherException catch (e) {
-        expect(e.statusCode, 401);
+        statusCode = e.statusCode;
       }
 
+      expect(statusCode, 401);
       expect(loggedOut[0], false);
       expect(loggedOut[1], true);
     });
