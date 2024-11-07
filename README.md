@@ -3,12 +3,99 @@
 
 ## Motivation
 
-Imagine a user launching an app for the second time and seeing a skeletal loading screen or progress bar,
-especially in parts of the UI where the data doesn't change often. This is not so good UX.
+Imagine a user launching the app for the second time and seeing a skeletal loading screen or progress bar,
+especially in parts of the UI where the data doesn't change often. This is not a good UX.
 
-To fix this, we can load the data from the cache in the first step and then update the data in the second step.
+To fix this, we can load the data from the cache in the first step, and then update the data in the second step.
 
-We don't target to minimize query to the server, but to minimize the time to show the data to the user.
+*We don't aim to minimize requests to the server, but to minimize the time it takes to display the data to the user.*
+
+## Using
+
+```dart
+import 'package:http/http.dart' as http;
+import 'package:json_fetcher/json_fetcher.dart';
+import 'package:path_provider/path_provider.dart';
+
+Future<String> get cachePath => getApplicationCacheDirectory().then((dir) => dir.path)
+final client = JsonHttpClient(http.Client(), createCache(cachePath));
+final postsStream = JsonFetcher<Model>>(
+  client,
+  (json) => Model.fromJson(json),
+).fetch('https://example.com/get-json');
+```
+
+> [!TIP]
+> Examples can be found in the [examples](https://github.com/justprodev/json_fetcher/tree/master/examples) directory:
+> - [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example)
+> - [Pure Dart example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example)
+
+
+## Configuration
+
+At the first step you should create [JsonHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/src/json_http_client.dart):
+
+```dart
+final jsonClient = JsonHttpClient(httpClient, cache);
+```
+
+### HttpClient
+
+This package uses standard Dart [http](https://pub.dev/packages/http) package.
+
+Basicaly, is enough to use [Client()](https://pub.dev/documentation/http/latest/http/Client-class.html) for creating raw client:
+
+```dart
+final jsonClient = JsonHttpClient(Client(), cache)
+```
+
+So, you can [configure client](https://pub.dev/packages/http#2-configure-the-http-client) more precisely before creating [JsonHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/src/json_http_client.dart) itself.
+
+```dart
+Client httpClient() {
+  if (Platform.isAndroid) {
+    final engine = CronetEngine.build(
+        cacheMode: CacheMode.memory,
+        cacheMaxSize: 1000000);
+    return CronetClient.fromCronetEngine(engine);
+  }
+  if (Platform.isIOS || Platform.isMacOS) {
+    final config = URLSessionConfiguration.ephemeralSessionConfiguration()
+      ..cache = URLCache.withCapacity(memoryCapacity: 1000000);
+    return CupertinoClient.fromSessionConfiguration(config);
+  }
+  return IOClient();
+}
+
+final jsonClient = JsonHttpClient(httpClient(), cache)
+```
+
+> [!TIP]
+> The package contains convenitent client-wrapper with logging capabitility [LoggableHttpClient](https://github.com/justprodev/json_fetcher/blob/master/lib/loggable_http_client.dart),
+> see [Flutter example](https://github.com/justprodev/json_fetcher/tree/master/examples/flutter_json_fetcher_example) as use case.
+
+
+### Cache
+
+For creating `cache` just use convenient function `createCache(path)`.
+
+> [!NOTE]
+> `path` can be `String` of `Future<String>`
+>
+> `Future<String>` variant is very useful for creating a client somewhere in `DI` at app startup, to prevent unneded waiting.
+
+In Flutter Android/iOS app you can create client that caches data in standard cache directory with following snippet:
+
+```dart
+import 'package:path_provider/path_provider.dart';
+
+Future<String> get path => getApplicationCacheDirectory().then((value) => value.path)
+
+final jsonClient = JsonHttpClient(httpClient(), createCache(path))
+```
+
+> [!TIP]
+> Package exposes interface [HttpCache](https://github.com/justprodev/json_fetcher/blob/master/lib/src/http_cache.dart), that can be implemented to use your own cache.
 
 ## How it works
 
@@ -19,56 +106,16 @@ If the data hasn't changed, the stream's subscriber will get one snapshot
 
 If there is no cached copy, the stream's subscriber will get one snapshot.
 
-## Cache
+### Cache
 
 The cache data is managed by implementations of [HttpCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/http_cache.dart).
 
-### dart:io (mobile/desktop)
+#### dart:io (mobile/desktop)
 
 [HttpFilesCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_files_cache/http_files_cache.dart) stores data in files.
 It uses long living `Isolate` to work synchronously with the file system. This increases the speed of the cache.
 
-### Web
+#### Web
 
 [HttpHiveCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
 which is not related to Isar. Not bad for working as Key-Value storage.
-
-## Usage
-
-### pubspec.yaml
-
-```yaml
-json_fetcher:
-  git:
-    url: https://github.com/justprodev/json_fetcher.git
-    ref: 2.0.0-rc.12 # control the version, please
-```
-
-### Code
-
-```dart
-import 'dart:io';
-
-import 'package:dart_json_fetcher_example/model/post.dart';
-import 'package:http/http.dart';
-import 'package:json_fetcher/json_fetcher.dart';
-import 'package:json_fetcher/standard_fetchers.dart';
-
-void main() async {
-  final client = JsonHttpClient(Client(), createCache('temp'));
-  final postsStream = JsonFetcher<List<Post>>(
-    client,
-    (json) => (json as List).map((e) => Post.fromJson(e as Map<String, dynamic>)).toList(),
-  ).fetch('https://jsonplaceholder.typicode.com/posts');
-
-  await for (final posts in postsStream) {
-    for (final post in posts) {
-      print(post);
-    }
-  }
-
-  exit(0);
-}
-```
-
-More examples can be found in the [examples](https://github.com/justprodev/json_fetcher/tree/master/examples) directory.
