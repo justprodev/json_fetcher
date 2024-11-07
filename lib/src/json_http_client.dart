@@ -3,7 +3,6 @@
 // MIT License that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io' show HttpHeaders, HttpException;
 
 import 'package:http/http.dart' as http;
 import 'package:json_fetcher/src/util/http.dart';
@@ -138,10 +137,10 @@ class JsonHttpClient {
             } else {
               // logout
               await onExpire!(true);
-              throw HttpException('401', uri: response.request?.url);
+              throw http.ClientException('401', response.request?.url);
             }
           } else {
-            throw HttpException('', uri: response.request?.url);
+            throw http.ClientException('', response.request?.url);
           }
         }
         return response;

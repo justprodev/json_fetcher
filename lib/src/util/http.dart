@@ -27,3 +27,7 @@ extension BaseClientExt on Client {
     return Response.fromStream(await send(request));
   }
 }
+
+abstract interface class HttpHeaders {
+  static const contentTypeHeader = "content-type";
+}

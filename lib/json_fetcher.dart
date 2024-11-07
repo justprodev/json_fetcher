@@ -11,7 +11,7 @@ import 'dart:async';
 
 import 'src/http_cache.dart';
 
-import 'src/cache/http_cache_web_impl.dart' if (dart.library.io) 'src/cache/http_cache_io_impl.dart' as impl;
+import 'src/cache/http_cache_impl.dart' as impl;
 
 /// Creates a cache for [JsonHttpClient]
 ///
