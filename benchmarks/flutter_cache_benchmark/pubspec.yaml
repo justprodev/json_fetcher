@@ -18,6 +18,7 @@ dependencies:
     path: ../../../json_fetcher
 
   path_provider:
+  share_plus: ^10.1.2
 
   cupertino_icons: ^1.0.6
 
