@@ -1,7 +1,7 @@
 ## 2.0.3
 
-* "io*: `HttpFilesCache` remove isolate; add concurrent IO; update benchmarks
-* *web*: replace `HttpHiveCache` by `HttpWebCache` which is created from scratch
+* **io**: `HttpFilesCache` remove isolate; add concurrent IO; update benchmarks
+* **web**: replace `HttpHiveCache` by `HttpWebCache` which is created from scratch
 
 ## 2.0.2
 
