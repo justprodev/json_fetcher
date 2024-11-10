@@ -113,9 +113,10 @@ The cache data is managed by implementations of [HttpCache](https://github.com/j
 #### dart:io (mobile/desktop)
 
 [HttpFilesCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_files_cache/http_files_cache.dart) stores data in files.
-It uses long living `Isolate` to work synchronously with the file system. This increases the speed of the cache.
+Performance improved by using concurrent IO with synchronization by keys.
 
 #### Web
 
-[HttpHiveCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_hive_cache/http_hive_cache.dart) uses pure dart version of the [hive](https://github.com/isar/hive/tree/legacy),
-which is not related to Isar. Not bad for working as Key-Value storage.
+[HttpWebCache](https://github.com/justprodev/json_fetcher/tree/master/lib/src/cache/http_web_cache/http_web_cache.dart) stores data in [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API).
+It uses [package:web](https://pub.dev/packages/web) from Dart team.
+
