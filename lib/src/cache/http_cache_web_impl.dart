@@ -2,8 +2,9 @@
 
 import 'dart:async';
 
-import 'package:json_fetcher/src/cache/http_hive_cache/http_hive_cache.dart';
+import 'package:json_fetcher/src/cache/http_web_cache/utils.dart';
 
 import '../http_cache.dart';
+import 'http_web_cache/http_web_cache.dart';
 
-HttpCache createCache([FutureOr<String>? path]) => HttpHiveCache(path);
+HttpCache createCache([FutureOr<String>? path]) => HttpWebCache();

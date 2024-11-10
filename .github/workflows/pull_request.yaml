@@ -1,24 +1,15 @@
-name: Flutter Test in Pull Requests
+name: Dart Test in Pull Requests
 
 on:
   pull_request:
-    types: [ synchronize ]
+    types: [ opened, synchronize ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Run tests
-        run: flutter test -j 1
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: sh .tool/run_tests.sh

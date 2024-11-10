@@ -1,6 +1,6 @@
 name: json_fetcher
-description: Fetching JSON data with caching/auth-handling/logging
-version: 2.0.2
+description: Convenient fetching of JSON data, caching, auth, logging.
+version: 2.0.3
 repository: https://github.com/justprodev/json_fetcher
 
 topics:
@@ -9,12 +9,12 @@ topics:
   - cache
 
 environment:
-  sdk: ^3.0.0
+  sdk: ^3.4.0
 
 dependencies:
   http: ^1.2.1
-  hive: 2.2.3
   meta:
+  web: ^1.1.0
 
   logging:
 

@@ -1,13 +1,18 @@
+// Created by alex@justprodev.com on 10.11.2024.
+
 // Copyright (c) 2020, alex@justprodev.com.
 // All rights reserved. Use of this source code is governed by a
 // MIT License that can be found in the LICENSE file.
 
+// using it just for comparing
+library;
+
 import 'dart:async';
 
 import 'package:hive/hive.dart';
+import 'package:json_fetcher/json_fetcher.dart' show HttpCache;
+// ignore: implementation_imports
 import 'package:json_fetcher/src/util/fnv1a_hash/fnv1a_hash.dart';
-
-import '../../http_cache.dart';
 
 const _boxName = '__hive_json_hive_cache';
 

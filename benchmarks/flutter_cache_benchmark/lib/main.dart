@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:animated_flip_counter/animated_flip_counter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'benchmark.dart';
 
@@ -42,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late ValueNotifier<int> minutes;
   late ValueNotifier<int> seconds;
   Stream<String>? benchmark;
+  String? lastBenchmark;
 
   @override
   void initState() {
@@ -151,6 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                       final result = snapshot.data?.toString() ?? snapshot.error?.toString();
                       if (result != null) {
+                        lastBenchmark = result;
                         return SelectableText(result);
                       }
                       return const CircularProgressIndicator();
@@ -160,20 +164,45 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: ValueListenableBuilder(
-              valueListenable: started,
-              builder: (_, bool startedValue, __) {
-                return ElevatedButton(
-                  onPressed: !startedValue ? start : null,
-                  child: const Text('Restart'),
-                );
-              },
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ValueListenableBuilder(
+                valueListenable: started,
+                builder: (_, bool startedValue, __) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: !startedValue ? start : null,
+                          child: const Text('Restart'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: !startedValue && lastBenchmark != null ? share : null,
+                        child: const Icon(Icons.ios_share),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  void share() {
+    String text = '''
+### ${defaultTargetPlatform.name}:
+
+```
+${lastBenchmark!.trim()}
+```
+    
+    ''';
+    Share.share(text);
   }
 }
