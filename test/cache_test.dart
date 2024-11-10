@@ -4,12 +4,9 @@
 
 import 'dart:io';
 
-import 'package:hive/hive.dart';
 import 'package:json_fetcher/json_fetcher.dart' as general show createCache;
 import 'package:json_fetcher/src/cache/http_cache_io_impl.dart' as io_cache_impl;
-import 'package:json_fetcher/src/cache/http_cache_web_impl.dart' as web_cache_impl;
 import 'package:json_fetcher/src/cache/http_files_cache/http_files_cache.dart';
-import 'package:json_fetcher/src/cache/http_hive_cache/http_hive_cache.dart';
 import 'package:json_fetcher/src/http_cache.dart';
 import 'package:json_fetcher/src/util/fnv1a_hash/fnv1a_hash.dart';
 import 'package:test/test.dart';
@@ -30,30 +27,6 @@ void main() {
       final file = File('$temp/file');
       file.createSync(recursive: true);
       final cache = HttpFilesCache(file.path);
-      try {
-        await cache.get('123');
-      } catch (e) {
-        error = e;
-      }
-      expect(error, isA<FileSystemException>());
-    });
-  });
-
-  group('web', () {
-    // we providing path here, because of unit test in Dart VM
-    test('cache', () async {
-      final cache = web_cache_impl.createCache(temp);
-      await testCache(cache);
-    });
-    test('path by future', () => testCreateCacheWithPathByFuture((path) => web_cache_impl.createCache(path)));
-    test('init error', () async {
-      Object? error;
-
-      // try to define file instead of directory
-      final file = File('$temp/file');
-      file.createSync(recursive: true);
-      await Hive.close();
-      HttpCache cache = HttpHiveCache(file.path);
       try {
         await cache.get('123');
       } catch (e) {
