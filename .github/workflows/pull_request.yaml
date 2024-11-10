@@ -1,4 +1,4 @@
-name: Flutter Test in Pull Requests
+name: Dart Test in Pull Requests
 
 on:
   pull_request:
