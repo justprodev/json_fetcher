@@ -23,7 +23,7 @@ jobs:
         run: flutter pub get
 
       - name: Run tests
-        run: flutter test -j 1 --coverage
+        run: sh .tool/run_tests.sh
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
