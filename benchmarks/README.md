@@ -1,3 +1,6 @@
+*HttpHiveCache here just for comparing. It is not used in the package from version 2.0.3.*
+
+
 ### iOS:
 ```
 Key value size: 27.0 KB
