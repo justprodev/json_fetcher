@@ -1,14 +1,16 @@
 // Created by alex@justprodev.com on 17.08.2024.
 
 import 'dart:convert';
-import 'dart:io' show HttpHeaders;
-import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 
 import '../loggable_http_client.dart' show LoggableHttpClientConfig;
+import 'util/isolate/isolate_stub.dart'
+    if (dart.library.io) 'util/isolate/isolate_io.dart'
+    if (dart.library.js_interop) 'util/isolate/isolate_web.dart';
+import 'util/http.dart';
 
 const longBodyLength = 100000; // 100kB
 const longJsonFieldLength = 10000; // 10kB
@@ -26,7 +28,7 @@ class HttpLogger {
 
   Future<void> logRequest(BaseRequest request) async {
     String s = "${request.method} ${request.url} -->";
-    if(config.logInputHeaders) {
+    if (config.logInputHeaders) {
       s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(request.headers) : request.headers}";
     }
     if (config.logInputBody && request is Request && request.body.isNotEmpty) {
@@ -37,13 +39,13 @@ class HttpLogger {
 
   Future<void> logResponse(BaseRequest request, BaseResponse response, [Uint8List? bytes]) async {
     String s = "${request.method} ${request.url} <-- ${response.statusCode}";
-    if(config.logOutputHeaders) {
+    if (config.logOutputHeaders) {
       s += "\nheader: ${config.hideAuthorization ? _hideAuthorization(response.headers) : response.headers}";
     }
 
     // need log body
     if (bytes != null) {
-        s += "\nbody: ${await _smartCut(request.headers[HttpHeaders.contentTypeHeader], utf8.decode(bytes))}";
+      s += "\nbody: ${await _smartCut(request.headers[HttpHeaders.contentTypeHeader], utf8.decode(bytes))}";
     }
 
     _logger.info(s);
@@ -60,7 +62,7 @@ class HttpLogger {
   Future<String> _smartCut(String? contentType, String body) async {
     if (config.cutLongBody && body.length > longBodyLength) {
       if (contentType?.contains('/json') == true) {
-        return Isolate.run(() => _smartCutJson(body));
+        return run(() => _smartCutJson(body));
       } else {
         return "${body.substring(0, longBodyLength)}$threeDotsString";
       }

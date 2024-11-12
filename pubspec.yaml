@@ -1,6 +1,6 @@
 name: json_fetcher
 description: Convenient fetching of JSON data, caching, auth, logging.
-version: 2.0.3
+version: 2.0.4
 repository: https://github.com/justprodev/json_fetcher
 
 topics:

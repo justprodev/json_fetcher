@@ -1,3 +1,7 @@
+## 2.0.4
+
+* **web**: fix using logger on web
+
 ## 2.0.3
 
 * **io**: `HttpFilesCache` remove isolate; add concurrent IO; update benchmarks
