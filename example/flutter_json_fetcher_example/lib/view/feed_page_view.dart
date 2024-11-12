@@ -22,12 +22,6 @@ class _FeedPageViewState<Item> extends State<FeedPageView<Item>> with AutomaticK
   GlobalKey feedKey = GlobalKey();
 
   @override
-  void dispose() {
-    print('FeedPageView disposed');
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(

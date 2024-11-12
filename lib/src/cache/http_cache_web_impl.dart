@@ -2,8 +2,6 @@
 
 import 'dart:async';
 
-import 'package:json_fetcher/src/cache/http_web_cache/utils.dart';
-
 import '../http_cache.dart';
 import 'http_web_cache/http_web_cache.dart';
 

@@ -1,6 +1,5 @@
 // Created by alex@justprodev.com on 27.08.2024.
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../model/comment.dart';
