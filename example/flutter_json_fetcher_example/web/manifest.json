@@ -1,11 +1,11 @@
 {
-    "name": "flutter_json_fetcher_example",
-    "short_name": "flutter_json_fetcher_example",
+    "name": "Json Fetcher Flutter example",
+    "short_name": "Json Fetcher Flutter example",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Json Fetcher Flutter example",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
