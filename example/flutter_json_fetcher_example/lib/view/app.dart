@@ -1,6 +1,7 @@
 // Created by alex@justprodev.com on 27.08.2024.
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../model/comment.dart';
 import '../model/movie.dart';
@@ -36,6 +37,15 @@ class App extends StatelessWidget {
               FeedPageView<Comment>(itemBuilder: _commentsBuilder),
               FeedPageView<Movie>(itemBuilder: _moviesBuilder),
             ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            tooltip: 'Source code',
+            mini: true,
+            backgroundColor: Colors.grey,
+            onPressed: () {
+              launchUrlString('https://github.com/justprodev/json_fetcher/tree/master/example/flutter_json_fetcher_example/lib');
+            },
+            child: const Icon(Icons.code),
           ),
         ),
       ),
