@@ -2,7 +2,7 @@
 
 # This script is used to upload web app to justprodev.com GH Pages
 
-WEB_PATH=/demo/cached_image
+WEB_PATH=/demo/json_fetcher_flutter/
 
 # Build the project
 flutter build  web --wasm --base-href $WEB_PATH
