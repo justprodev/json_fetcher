@@ -18,7 +18,7 @@ class FeedView<Item> extends StatelessWidget {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('Error: ${snapshot.error}', textAlign: TextAlign.center),
+              child: SelectableText('Error: ${snapshot.error}', textAlign: TextAlign.center),
             ),
           );
         }
