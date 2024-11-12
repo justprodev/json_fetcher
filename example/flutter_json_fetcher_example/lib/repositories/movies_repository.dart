@@ -16,7 +16,7 @@ class MoviesRepository extends BaseRepository<Movie> {
 
   @override
   Stream<List<Movie>> getItems() {
-    return JsonFetcher(
+    return IsolatedJsonFetcher(
       client,
       (json) => (json as List).map((e) => Movie.fromJson(e as Map<String, dynamic>)).toList().reversed.toList(),
     ).fetch(url);

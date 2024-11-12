@@ -1,6 +1,6 @@
 ## 2.0.4
 
-* **web**: fix using logger on web
+* **web**: fix handling isolates on the web
 
 ## 2.0.3
 
