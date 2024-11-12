@@ -1,7 +1,6 @@
 // Created by alex@justprodev.com on 27.08.2024.
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../model/comment.dart';
 import '../model/movie.dart';
@@ -34,18 +33,15 @@ class App extends StatelessWidget {
           ),
           body: const TabBarView(
             children: <Widget>[
-              FeedPageView<Comment>(itemBuilder: _commentsBuilder),
-              FeedPageView<Movie>(itemBuilder: _moviesBuilder),
+              FeedPageView<Comment>(
+                itemBuilder: _commentsBuilder,
+                sourceCodeUrl: 'https://github.com/justprodev/json_fetcher/blob/master/example/flutter_json_fetcher_example/lib/repositories/comments_repository.dart',
+              ),
+              FeedPageView<Movie>(
+                itemBuilder: _moviesBuilder,
+                sourceCodeUrl: 'https://github.com/justprodev/json_fetcher/blob/master/example/flutter_json_fetcher_example/lib/repositories/movies_repository.dart',
+              ),
             ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            tooltip: 'Source code',
-            mini: true,
-            backgroundColor: Colors.grey,
-            onPressed: () {
-              launchUrlString('https://github.com/justprodev/json_fetcher/tree/master/example/flutter_json_fetcher_example/lib');
-            },
-            child: const Icon(Icons.code),
           ),
         ),
       ),
@@ -56,4 +52,3 @@ class App extends StatelessWidget {
 
   static Widget _moviesBuilder(int index, Movie item) => MovieView(index: index, movie: item);
 }
-

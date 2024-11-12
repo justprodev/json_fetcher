@@ -2,14 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../repositories/base_repository.dart';
 import 'feed_view.dart';
 
 class FeedPageView<Item> extends StatefulWidget {
   final Widget Function(int index, Item) itemBuilder;
+  final String sourceCodeUrl;
 
-  const FeedPageView({super.key, required this.itemBuilder});
+  const FeedPageView({super.key, required this.itemBuilder, required this.sourceCodeUrl});
 
   @override
   State<FeedPageView<Item>> createState() => _FeedPageViewState<Item>();
@@ -52,6 +54,14 @@ class _FeedPageViewState<Item> extends State<FeedPageView<Item>> with AutomaticK
                     setState(() => feedKey = GlobalKey());
                   },
                   child: const Icon(Icons.delete_forever),
+                ),
+                const SizedBox(width: 16),
+                FloatingActionButton(
+                  mini: true,
+                  tooltip: 'Source code',
+                  backgroundColor: Colors.grey,
+                  onPressed: () => launchUrlString(widget.sourceCodeUrl),
+                  child: const Icon(Icons.code),
                 ),
               ],
             ),
