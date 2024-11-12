@@ -3,12 +3,8 @@
 @TestOn('browser')
 library;
 
-import 'dart:async';
-import 'dart:js_interop';
-
 import 'package:json_fetcher/json_fetcher.dart';
 import 'package:json_fetcher/src/cache/http_web_cache/http_web_cache.dart';
-import 'package:json_fetcher/src/cache/http_web_cache/utils.dart';
 import 'package:test/test.dart';
 import 'package:web/web.dart';
 

@@ -4,9 +4,12 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 
 import 'package:json_fetcher/src/json_http_fetcher.dart';
+
+import 'src/util/isolate/isolate_stub.dart'
+    if (dart.library.io) 'src/util/isolate/isolate_io.dart'
+    if (dart.library.html) 'src/util/isolate/isolate_web.dart';
 
 /// get result from service as is, without parsing actually
 ///
@@ -54,10 +57,10 @@ class IsolatedJsonFetcher<T> extends JsonFetcher<T> {
   const IsolatedJsonFetcher(super.client, super.converter);
 
   @override
-  Future<T> parse(String source) {
+  FutureOr<T> parse(String source) {
     // Prevent capturing client
     // ignore: no_leading_underscores_for_local_identifiers
     final _converter = converter;
-    return Isolate.run(() => _converter(jsonDecode(source)));
+    return run(() => _converter(jsonDecode(source)));
   }
 }

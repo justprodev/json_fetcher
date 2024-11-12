@@ -6,10 +6,13 @@ import 'package:json_fetcher/standard_fetchers.dart';
 import '../model/movie.dart';
 import 'base_repository.dart';
 
+// see release_web.sh
+const _moviesUrl = 'https://justprodev.com/demo/json_fetcher_flutter/movies.json';
+
 class MoviesRepository extends BaseRepository<Movie> {
   const MoviesRepository(
     JsonHttpClient client,
-  ) : super(client: client, url: 'https://raw.githubusercontent.com/prust/wikipedia-movie-data/master/movies.json');
+  ) : super(client: client, url: _moviesUrl);
 
   @override
   Stream<List<Movie>> getItems() {

@@ -1,6 +1,5 @@
 // Created by alex@justprodev.com on 27.08.2024.
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../model/comment.dart';
@@ -34,8 +33,14 @@ class App extends StatelessWidget {
           ),
           body: const TabBarView(
             children: <Widget>[
-              FeedPageView<Comment>(itemBuilder: _commentsBuilder),
-              FeedPageView<Movie>(itemBuilder: _moviesBuilder),
+              FeedPageView<Comment>(
+                itemBuilder: _commentsBuilder,
+                sourceCodeUrl: 'https://github.com/justprodev/json_fetcher/blob/master/example/flutter_json_fetcher_example/lib/repositories/comments_repository.dart',
+              ),
+              FeedPageView<Movie>(
+                itemBuilder: _moviesBuilder,
+                sourceCodeUrl: 'https://github.com/justprodev/json_fetcher/blob/master/example/flutter_json_fetcher_example/lib/repositories/movies_repository.dart',
+              ),
             ],
           ),
         ),
@@ -47,4 +52,3 @@ class App extends StatelessWidget {
 
   static Widget _moviesBuilder(int index, Movie item) => MovieView(index: index, movie: item);
 }
-
