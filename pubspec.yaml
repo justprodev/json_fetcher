@@ -1,5 +1,5 @@
 name: json_fetcher
-description: Convenient fetching of JSON data, caching, auth, logging.
+description: Convenient fetching of JSON data with caching, auth, logging. Wrapper over standard Dart http package.
 version: 2.0.4
 repository: https://github.com/justprodev/json_fetcher
 
