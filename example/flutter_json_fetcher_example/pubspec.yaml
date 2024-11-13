@@ -2,7 +2,7 @@ name: flutter_json_fetcher_example
 description: "Json Fetcher Demo"
 publish_to: 'none'
 
-version: 1.0.1
+version: 1.0.2
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
