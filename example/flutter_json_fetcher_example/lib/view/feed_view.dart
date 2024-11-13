@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_json_fetcher_example/repositories/base_repository.dart';
 import 'package:provider/provider.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 class FeedView<Item> extends StatelessWidget {
   final Widget Function(int index, Item) itemBuilder;
@@ -29,7 +30,7 @@ class FeedView<Item> extends StatelessWidget {
 
         final items = snapshot.data!;
 
-        return ListView.builder(
+        return SuperListView.builder(
           padding: const EdgeInsets.all(16),
           itemBuilder: (_, index) {
             return Padding(
