@@ -1,3 +1,7 @@
+## 2.0.5
+
+* Bump http to 1.3.0 - [browser_client.dart uses fetch](https://github.com/dart-lang/http/pull/1401)
+
 ## 2.0.4
 
 * **web**: fix handling isolates on the web

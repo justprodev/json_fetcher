@@ -12,7 +12,7 @@ environment:
   sdk: ^3.4.0
 
 dependencies:
-  http: ^1.2.1
+  http: ^1.3.0
   meta:
   web: ^1.1.0
 
