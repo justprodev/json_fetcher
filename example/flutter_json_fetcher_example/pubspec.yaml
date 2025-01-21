@@ -18,9 +18,8 @@ dependencies:
   super_sliver_list: ^0.4.1
 
   path_provider: ^2.1.4
-  http:
-  json_fetcher:
-    path: ../../../json_fetcher
+
+  json_fetcher: ^2.0.4
   logging:
 
   cached_image:
