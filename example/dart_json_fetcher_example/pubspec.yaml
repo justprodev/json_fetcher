@@ -10,7 +10,7 @@ dependencies:
   freezed_annotation: ^2.4.4
 
   json_annotation: ^4.9.0
-  json_fetcher: ^2.0.4
+  json_fetcher: ^2.0.5
   http:
 
 dev_dependencies:
