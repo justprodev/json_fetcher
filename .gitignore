@@ -74,5 +74,5 @@ build/
 !**/ios/**/default.perspectivev3
 /applicationDocumentsPath/
 /pubspec.lock
-/temp/
+temp/
 /coverage/

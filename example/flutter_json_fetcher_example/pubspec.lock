@@ -298,7 +298,7 @@ packages:
     source: hosted
     version: "2.3.2"
   http:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: http
       sha256: b9c29a161230ee03d3ccf545097fccd9b87a5264228c5d348202e0f0c28f9010
@@ -348,9 +348,10 @@ packages:
   json_fetcher:
     dependency: "direct main"
     description:
-      path: "../.."
-      relative: true
-    source: path
+      name: json_fetcher
+      sha256: a98083af0b30cc709358e36b29c21e768cbb7e72bab5d6370531d744e9b43f08
+      url: "https://pub.dev"
+    source: hosted
     version: "2.0.4"
   json_serializable:
     dependency: "direct dev"
