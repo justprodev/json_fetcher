@@ -21,4 +21,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
+      - run: rm -f codecov* # rm codecov temp files
       - run: dart pub publish --force
